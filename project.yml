@@ -1,0 +1,40 @@
+name: Camerae
+options:
+  bundleIdPrefix: com.camerae
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+packages:
+  CamCore:
+    path: CamCore
+targets:
+  Camerae:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: catalog/cameras.json
+        buildPhase: resources
+    dependencies:
+      - package: CamCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.camerae.app
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Camerae
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Camerae uses your location as the starting point of a route."
+schemes:
+  Camerae:
+    build:
+      targets:
+        Camerae: all
+    test:
+      targets:
+        - package: CamCore/CamCoreTests
