@@ -1,6 +1,6 @@
 name: Camerae
 options:
-  bundleIdPrefix: com.camerae
+  bundleIdPrefix: com.danfoygel
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
@@ -19,7 +19,8 @@ targets:
       - package: CamCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.camerae.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.danfoygel.camerae
+        DEVELOPMENT_TEAM: ZVU48K8YCD
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"

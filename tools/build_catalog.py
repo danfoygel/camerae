@@ -229,11 +229,12 @@ ADAPTERS = {"caltrans": caltrans_cameras, "nevada": nevada_cameras}
 STREAM_CHECK_WORKERS = 4
 
 
-DEAD_STATUSES = {403, 404, 410}
+# 403 is deliberately absent: Caltrans's Wowza hosts answer 403 when busy.
+DEAD_STATUSES = {404, 410}
 
 
 def stream_is_live(url, attempts=2):
-    """False only when the playlist definitively answers 403/404/410 (twice).
+    """False only when the playlist definitively answers 404/410 (twice).
 
     Timeouts and other errors keep the stream: under load the Wowza hosts stall or refuse
     requests for streams that are fine, and a false "dead" hides a working camera.
@@ -262,12 +263,18 @@ def drop_dead_streams(cameras):
     with_video = [c for c in cameras if c["hlsURL"]]
     with ThreadPoolExecutor(max_workers=STREAM_CHECK_WORKERS) as pool:
         live = list(pool.map(lambda c: stream_is_live(c["hlsURL"]), with_video))
+    suspects = [cam for cam, ok in zip(with_video, live) if not ok]
+    print(f"stream check: {len(suspects)} of {len(with_video)} streams suspect; confirming one at a time",
+          file=sys.stderr)
+
+    # Confirm sequentially, without the concurrent load that can itself cause errors.
     dead = 0
-    for cam, ok in zip(with_video, live):
-        if not ok:
+    for cam in suspects:
+        if not stream_is_live(cam["hlsURL"]):
             cam["hlsURL"] = None
             dead += 1
-    print(f"stream check: {dead} of {len(with_video)} streams unreachable, cleared", file=sys.stderr)
+        time.sleep(0.5)
+    print(f"stream check: {dead} dead streams cleared", file=sys.stderr)
 
 
 def main():
