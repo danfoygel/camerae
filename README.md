@@ -14,8 +14,8 @@ tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the
 
 App (SwiftUI, iOS 18+)
   SearchView    MKLocalSearchCompleter autocomplete, "Current Location"
-  RoutePlanner  MKDirections → RouteGeometry → RouteMatcher (CamCore)
-  RouteView     Map with route + camera dots, ordered camera list
+  RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
+  RouteView     route picker, Map with routes + camera dots, ordered camera list
   CameraRow     snapshot that refreshes only while on screen; tap to expand
   LivePlayback  one shared AVPlayer that moves to the selected camera
 
