@@ -254,6 +254,16 @@ def stream_is_live(url, attempts=2):
     return False
 
 
+def answers_ok(url):
+    """First-pass probe: True only for a clean 200. Anything else is a suspect to re-check."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=8):
+            return True
+    except Exception:
+        return False
+
+
 def drop_dead_streams(cameras):
     """Clear hlsURL on cameras whose playlist is gone, so the app shows their snapshot
     instead of waiting on a stream that will never start. Feeds keep listing dead streams
@@ -262,7 +272,7 @@ def drop_dead_streams(cameras):
 
     with_video = [c for c in cameras if c["hlsURL"]]
     with ThreadPoolExecutor(max_workers=STREAM_CHECK_WORKERS) as pool:
-        live = list(pool.map(lambda c: stream_is_live(c["hlsURL"]), with_video))
+        live = list(pool.map(lambda c: answers_ok(c["hlsURL"]), with_video))
     suspects = [cam for cam, ok in zip(with_video, live) if not ok]
     print(f"stream check: {len(suspects)} of {len(with_video)} streams suspect; confirming one at a time",
           file=sys.stderr)
