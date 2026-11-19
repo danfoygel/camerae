@@ -2,12 +2,12 @@ import CamCore
 import CoreLocation
 import MapKit
 
-/// The driving routes for a trip, each with the cameras along it in route order.
+/// The driving routes for a trip, each with the camera sites along it in route order.
 struct PlannedRoute: Identifiable {
     struct Option: Identifiable {
         let id: Int
         let route: MKRoute
-        let cameras: [RouteCamera]
+        let sites: [RouteSite]
     }
 
     let id = UUID()
@@ -49,7 +49,7 @@ enum RoutePlanner {
         let routes = try await MKDirections(request: request).calculate().routes
         guard !routes.isEmpty else { throw PlanError.noRoute }
         let options = routes.enumerated().map { index, route in
-            PlannedRoute.Option(id: index, route: route, cameras: matcher.match(geometry(of: route)))
+            PlannedRoute.Option(id: index, route: route, sites: matcher.sites(along: geometry(of: route)))
         }
         return PlannedRoute(from: from.title, to: to.title, options: options,
                             places: [(from, source), (to, destination)].compactMap { endpoint, item in

@@ -2,14 +2,18 @@ import AVKit
 import CamCore
 import SwiftUI
 
-/// One camera in the route list. Collapsed rows show a refreshing snapshot; the selected row
-/// expands to the shared live player, with the snapshot as its poster. Swiping the expanded
-/// row left or right asks for the next or previous camera.
+/// One camera site in the route list. Collapsed rows show a refreshing snapshot; the selected
+/// row expands to the shared live player, with the snapshot as its poster, and lets you switch
+/// between the site's views when it has more than one. Swiping the expanded row left or right
+/// asks for the next or previous site.
 struct CameraRow: View {
-    let routeCamera: RouteCamera
+    let site: RouteSite
+    /// The view shown for this site.
+    let view: RouteCamera
     let number: Int
     let isSelected: Bool
     let onTap: () -> Void
+    let onChooseView: (String) -> Void
     /// Called with +1 (swiped left: next camera) or -1 (swiped right: previous camera).
     let onStep: (Int) -> Void
 
@@ -18,7 +22,7 @@ struct CameraRow: View {
     @Environment(FeedHealth.self) private var health
     @Environment(LivePlayback.self) private var playback
 
-    private var camera: Camera { routeCamera.camera }
+    private var camera: Camera { view.camera }
 
     /// A stream that is actually playing outranks a stale error snapshot.
     private var isOffline: Bool {
@@ -28,9 +32,14 @@ struct CameraRow: View {
     var body: some View {
         Group {
             if isSelected {
+                // Tapping the media or details collapses the row; the picker keeps its own taps.
                 VStack(alignment: .leading, spacing: 10) {
                     ExpandedMedia(camera: camera)
+                        .onTapGesture(perform: onTap)
+                    if site.views.count > 1 { viewPicker }
                     details
+                        .contentShape(.rect)
+                        .onTapGesture(perform: onTap)
                 }
                 .offset(x: dragOffset)
                 // Simultaneous so vertical drags still scroll the list.
@@ -42,12 +51,30 @@ struct CameraRow: View {
                         .clipShape(.rect(cornerRadius: 6))
                     details
                 }
+                .contentShape(.rect)
+                .onTapGesture(perform: onTap)
             }
         }
         .padding(.horizontal).padding(.vertical, 10)
         .background(isSelected ? Color.accentColor.opacity(0.08) : .clear)
-        .contentShape(.rect)
-        .onTapGesture(perform: onTap)
+    }
+
+    private var viewPicker: some View {
+        Picker("View", selection: Binding(get: { view.id }, set: onChooseView)) {
+            ForEach(Array(site.views.enumerated()), id: \.element.id) { index, view in
+                Text(Self.label(view, index: index)).tag(view.id)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private static func label(_ view: RouteCamera, index: Int) -> String {
+        switch view.facing {
+        case .ahead: "Ahead"
+        case .behind: "Behind"
+        case .side: "Looking \(view.viewCompass ?? "")"
+        case nil: "View \(index + 1)"
+        }
     }
 
     private var swipe: some Gesture {
@@ -82,16 +109,29 @@ struct CameraRow: View {
                 } else {
                     Badge(text: "SNAPSHOT", color: .gray)
                 }
-                Text("Heading \(routeCamera.travelCompass)").font(.caption2).foregroundStyle(.secondary)
+                if site.views.count > 1 {
+                    Badge(text: "\(site.views.count) VIEWS", color: .blue)
+                }
+                Text(direction).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var metadata: String {
-        var parts = [Format.distance(routeCamera.distanceAlong), "~\(Format.duration(routeCamera.eta))"]
+        var parts = [Format.distance(view.distanceAlong), "~\(Format.duration(view.eta))"]
         if let place = camera.place { parts.append(place) }
         return parts.joined(separator: " · ")
+    }
+
+    /// Which way the camera looks relative to the route, or the route's heading when unknown.
+    private var direction: String {
+        switch view.facing {
+        case .ahead: "Looking ahead"
+        case .behind: "Looking back"
+        case .side: "Looking \(view.viewCompass ?? "")"
+        case nil: "Heading \(view.travelCompass)"
+        }
     }
 }
 

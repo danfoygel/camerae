@@ -8,19 +8,31 @@ struct RouteView: View {
     @Environment(CatalogStore.self) private var catalog
     @Environment(LivePlayback.self) private var playback
     @State private var optionID = 0
+    /// The expanded site.
     @State private var selectedID: String?
+    /// The view picked in each site, by site id; other sites show their best view.
+    @State private var chosenViews: [String: String] = [:]
     @State private var liveOnly = false
     @State private var position: MapCameraPosition = .automatic
 
     private var option: PlannedRoute.Option { plan.options[optionID] }
 
-    private var cameras: [RouteCamera] {
-        liveOnly ? option.cameras.filter { $0.camera.hlsURL != nil } : option.cameras
+    private var sites: [RouteSite] {
+        liveOnly ? option.sites.compactMap { site in site.filter { $0.camera.hlsURL != nil } } : option.sites
+    }
+
+    private func view(of site: RouteSite) -> RouteCamera {
+        site.views.first { $0.id == chosenViews[site.id] } ?? site.primary
+    }
+
+    /// The view playing in the expanded row.
+    private var selectedView: RouteCamera? {
+        sites.first { $0.id == selectedID }.map(view(of:))
     }
 
     /// Stable 1-based numbers in route order, shared by map pins and rows.
     private var numbers: [String: Int] {
-        Dictionary(uniqueKeysWithValues: option.cameras.enumerated().map { ($1.id, $0 + 1) })
+        Dictionary(uniqueKeysWithValues: option.sites.enumerated().map { ($1.id, $0 + 1) })
     }
 
     var body: some View {
@@ -42,13 +54,16 @@ struct RouteView: View {
             }
         }
         .onChange(of: selectedID) { _, id in
-            guard let id, let selected = option.cameras.first(where: { $0.id == id }) else {
-                playback.stop()
-                return
-            }
-            playback.play(selected.camera)
+            guard id != nil, let selected = selectedView else { return }
             withAnimation {
                 position = .camera(MapCamera(centerCoordinate: selected.camera.clLocation, distance: 12_000))
+            }
+        }
+        .onChange(of: selectedView?.id) { _, _ in
+            if let selected = selectedView {
+                playback.play(selected.camera)
+            } else {
+                playback.stop()
             }
         }
         .onDisappear { playback.stop() }
@@ -70,12 +85,12 @@ struct RouteView: View {
                     MapPolyline(line.option.route.polyline)
                         .stroke(line.selected ? .blue : .gray.opacity(0.7), lineWidth: 5)
                 }
-                ForEach(cameras) { routeCamera in
-                    Annotation("", coordinate: routeCamera.camera.clLocation, anchor: .center) {
-                        CameraPin(number: numbers[routeCamera.id] ?? 0,
-                                  live: routeCamera.camera.hlsURL != nil,
-                                  selected: routeCamera.id == selectedID)
-                            .onTapGesture { select(routeCamera.id) }
+                ForEach(sites) { site in
+                    Annotation("", coordinate: view(of: site).camera.clLocation, anchor: .center) {
+                        CameraPin(number: numbers[site.id] ?? 0,
+                                  live: site.views.contains { $0.camera.hlsURL != nil },
+                                  selected: site.id == selectedID)
+                            .onTapGesture { select(site.id) }
                     }
                     .annotationTitles(.hidden)
                 }
@@ -105,9 +120,9 @@ struct RouteView: View {
     }
 
     private var summary: some View {
-        let live = option.cameras.filter { $0.camera.hlsURL != nil }.count
+        let live = option.sites.filter { site in site.views.contains { $0.camera.hlsURL != nil } }.count
         return HStack {
-            Text("\(option.cameras.count) cameras · \(live) live")
+            Text("\(option.sites.count) \(option.sites.count == 1 ? "camera" : "cameras") · \(live) live")
                 .font(.subheadline.bold())
             Spacer()
             Text("\(Format.distance(option.route.distance)) · \(Format.duration(option.route.expectedTravelTime))")
@@ -121,7 +136,7 @@ struct RouteView: View {
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if cameras.isEmpty {
+                    if sites.isEmpty {
                         ContentUnavailableView(
                             "No cameras on this route",
                             systemImage: "video.slash",
@@ -129,13 +144,15 @@ struct RouteView: View {
                         )
                         .padding(.top, 40)
                     }
-                    ForEach(cameras) { routeCamera in
-                        CameraRow(routeCamera: routeCamera,
-                                  number: numbers[routeCamera.id] ?? 0,
-                                  isSelected: routeCamera.id == selectedID) {
-                            select(routeCamera.id == selectedID ? nil : routeCamera.id)
-                        } onStep: { step(by: $0) }
-                        .id(routeCamera.id)
+                    ForEach(sites) { site in
+                        CameraRow(site: site,
+                                  view: view(of: site),
+                                  number: numbers[site.id] ?? 0,
+                                  isSelected: site.id == selectedID,
+                                  onTap: { select(site.id == selectedID ? nil : site.id) },
+                                  onChooseView: { chosenViews[site.id] = $0 },
+                                  onStep: { step(by: $0) })
+                        .id(site.id)
                         Divider().padding(.leading)
                     }
                     attribution
@@ -149,7 +166,7 @@ struct RouteView: View {
     }
 
     private var attribution: some View {
-        let sourceIDs = Set(option.cameras.map(\.camera.source))
+        let sourceIDs = Set(option.sites.flatMap(\.views).map(\.camera.source))
         let lines = catalog.catalog?.sources.filter { sourceIDs.contains($0.id) }.map(\.attribution) ?? []
         return VStack(spacing: 2) {
             ForEach(lines, id: \.self) { Text($0) }
@@ -162,11 +179,11 @@ struct RouteView: View {
         selectedID = id
     }
 
-    /// Moves the selection to the neighboring camera in the visible list, stopping at either end.
+    /// Moves the selection to the neighboring site in the visible list, stopping at either end.
     private func step(by offset: Int) {
-        guard let index = cameras.firstIndex(where: { $0.id == selectedID }),
-              cameras.indices.contains(index + offset) else { return }
-        select(cameras[index + offset].id)
+        guard let index = sites.firstIndex(where: { $0.id == selectedID }),
+              sites.indices.contains(index + offset) else { return }
+        select(sites[index + offset].id)
     }
 
     private func choose(_ id: Int) {
@@ -212,7 +229,7 @@ private struct RouteChip: View {
                 Text(option.route.name.isEmpty ? Format.distance(option.route.distance)
                                                : "via \(option.route.name)")
                     .font(.caption).lineLimit(1)
-                Label("\(option.cameras.count)", systemImage: "video.fill")
+                Label("\(option.sites.count)", systemImage: "video.fill")
                     .font(.caption2).foregroundStyle(.secondary)
             }
             .frame(minWidth: 96, alignment: .leading)

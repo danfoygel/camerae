@@ -55,9 +55,82 @@ public struct RouteCamera: Identifiable, Sendable, Hashable {
     public var eta: TimeInterval
     /// Direction of travel at the camera, degrees from north.
     public var travelBearing: Double
+    /// Direction the camera looks, degrees from north, when its name says.
+    public var viewBearing: Double?
     public var reason: Reason
 
     public var travelCompass: String { Geo.compassLabel(travelBearing) }
+    public var viewCompass: String? { viewBearing.map(Geo.compassLabel) }
+
+    public enum Facing: Sendable {
+        /// Looking the way the route travels: the road ahead.
+        case ahead
+        /// Looking back toward where the route came from.
+        case behind
+        /// Looking across the route, e.g. down a cross street.
+        case side
+    }
+
+    /// How the view lines up with the direction of travel, when the view direction is known.
+    public var facing: Facing? {
+        guard let viewBearing else { return nil }
+        return switch Geo.angleDifference(viewBearing, travelBearing) {
+        case ..<60: .ahead
+        case 120...: .behind
+        default: .side
+        }
+    }
+
+    /// Angle off the direction of travel, 0 (ahead) to 180 (behind); 90 when unknown, so an
+    /// unlabeled view ranks below one known to look ahead and above one known to look back.
+    var viewScore: Double {
+        viewBearing.map { Geo.angleDifference($0, travelBearing) } ?? 90
+    }
+}
+
+/// Cameras at one spot on the route, best view first.
+///
+/// Caltrans often mounts several cameras on one pole, each looking a different way. They
+/// become one stop on the route, led by the view looking the way the route travels.
+public struct RouteSite: Identifiable, Sendable, Hashable {
+    /// The best view's id, kept when `filter` drops views so selection survives filtering.
+    public let id: String
+    /// Never empty.
+    public private(set) var views: [RouteCamera]
+
+    public var primary: RouteCamera { views[0] }
+
+    init(views: [RouteCamera]) {
+        self.views = views.sorted { ($0.viewScore, $0.offset) < ($1.viewScore, $1.offset) }
+        id = self.views[0].id
+    }
+
+    /// The site with only the views that pass `isIncluded`, or nil when none do.
+    public func filter(_ isIncluded: (RouteCamera) -> Bool) -> RouteSite? {
+        var site = self
+        site.views = views.filter(isIncluded)
+        return site.views.isEmpty ? nil : site
+    }
+
+    /// Groups cameras into sites: each camera joins the first earlier camera within `radius`
+    /// meters that leads a site. Measuring from the leader keeps a row of closely spaced
+    /// cameras along a corridor from chaining into one long site.
+    static func group(_ cameras: [RouteCamera], radius: Double) -> [RouteSite] {
+        // Nearby cameras project close together, so only recent sites can hold a match.
+        let window = max(radius * 10, 500)
+        var groups: [[RouteCamera]] = []
+        for camera in cameras.sorted(by: { $0.distanceAlong < $1.distanceAlong }) {
+            let target = groups.indices.reversed()
+                .prefix { camera.distanceAlong - groups[$0][0].distanceAlong <= window }
+                .first { Geo.distance(groups[$0][0].camera.coordinate, camera.camera.coordinate) <= radius }
+            if let target {
+                groups[target].append(camera)
+            } else {
+                groups.append([camera])
+            }
+        }
+        return groups.map(RouteSite.init).sorted { $0.primary.distanceAlong < $1.primary.distanceAlong }
+    }
 }
 
 /// Finds the cameras along a route and orders them by distance from the start.
@@ -85,6 +158,9 @@ public struct RouteMatcher: Sendable {
         /// Min distance along the route between the first and last evidence cameras; an
         /// overpass puts all of its cameras at one spot.
         public var evidenceSpan: Double = 500
+        /// Cameras this close together are one site with several views. Caltrans puts the
+        /// views of one intersection up to about 65 m apart, on different poles.
+        public var siteRadius: Double = 70
 
         public init() {}
     }
@@ -97,6 +173,7 @@ public struct RouteMatcher: Sendable {
     private let grid: [Cell: [Int]]
     private let refs: [Set<RoadRef>]
     private let nameTokens: [Set<String>]
+    private let viewBearings: [Double?]
 
     public init(cameras: [Camera], options: Options = Options()) {
         self.cameras = cameras
@@ -108,6 +185,12 @@ public struct RouteMatcher: Sendable {
         self.grid = grid
         refs = cameras.map(\.roadRefs)
         nameTokens = cameras.map { Self.tokens(($0.road ?? "") + " " + $0.name) }
+        viewBearings = cameras.map(\.viewBearing)
+    }
+
+    /// The cameras along the route grouped into sites, in route order.
+    public func sites(along route: RouteGeometry) -> [RouteSite] {
+        RouteSite.group(match(route), radius: options.siteRadius)
     }
 
     public func match(_ route: RouteGeometry) -> [RouteCamera] {
@@ -146,6 +229,7 @@ public struct RouteMatcher: Sendable {
                     offset: offset,
                     eta: total > 0 ? route.expectedTravelTime * along / total : 0,
                     travelBearing: bearing,
+                    viewBearing: viewBearings[i],
                     reason: reason
                 )
             }

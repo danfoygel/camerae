@@ -37,6 +37,12 @@ enum Geo {
         return (deg + 360).truncatingRemainder(dividingBy: 360)
     }
 
+    /// Smallest angle between two bearings (0...180).
+    static func angleDifference(_ a: Double, _ b: Double) -> Double {
+        let d = abs(a - b).truncatingRemainder(dividingBy: 360)
+        return min(d, 360 - d)
+    }
+
     /// Smallest angle between two undirected axes (0...90), e.g. a road's N–S axis vs a bearing.
     static func axisDifference(_ a: Double, _ b: Double) -> Double {
         let d = abs(a - b).truncatingRemainder(dividingBy: 180)
