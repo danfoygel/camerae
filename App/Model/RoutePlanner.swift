@@ -87,7 +87,7 @@ extension MKPolyline {
     }
 }
 
-/// Requests when-in-use location access once, for "Current Location" starts.
+/// Requests when-in-use location access once, for "Current Location" starts and the blue dot on route maps.
 @MainActor
 final class LocationPermission: NSObject, CLLocationManagerDelegate {
     static let shared = LocationPermission()
