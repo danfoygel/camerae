@@ -72,8 +72,13 @@ gzipped) with an ETag, caches it, and switches to it when it's newer than what i
   goes in as a new version and older builds keep their old feed (it stops updating).
 - **Guard.** `tools/check_catalog.py` stops the publish if any source lost more than 20% of its
   cameras, so a feed that's down at build time doesn't remove coverage from every phone.
-- **Unchanged builds** (only `generatedAt` differs) aren't pushed. Each publish is a single
-  force-pushed commit, so the public repo never grows.
+- **Stream check.** A full check of every HLS playlist takes over an hour from GitHub's
+  runners, so each run probes for 15 minutes, never-checked and oldest-checked streams first,
+  and `stream-health.json` in the catalog repo carries every stream's last result forward.
+  Each stream is rechecked about once a week, so a newly dead stream can take that long to drop.
+- **Unchanged builds** (only `generatedAt` differs) leave the catalog file alone, so phones'
+  ETags stay valid. Each publish is a single force-pushed commit, so the public repo never
+  grows.
 - **Bundled copy.** `catalog/cameras.json` still ships in the app as the offline first-launch
   fallback. Refresh it before a release with the curl command below.
 - **Setup.** The workflow needs a deploy key with write access on `camerae-catalog`, with its
