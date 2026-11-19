@@ -3,12 +3,17 @@ import CamCore
 import SwiftUI
 
 /// One camera in the route list. Collapsed rows show a refreshing snapshot; the selected row
-/// expands to the shared live player, with the snapshot as its poster.
+/// expands to the shared live player, with the snapshot as its poster. Swiping the expanded
+/// row left or right asks for the next or previous camera.
 struct CameraRow: View {
     let routeCamera: RouteCamera
     let number: Int
     let isSelected: Bool
     let onTap: () -> Void
+    /// Called with +1 (swiped left: next camera) or -1 (swiped right: previous camera).
+    let onStep: (Int) -> Void
+
+    @State private var dragOffset: CGFloat = 0
 
     @Environment(FeedHealth.self) private var health
     @Environment(LivePlayback.self) private var playback
@@ -27,6 +32,9 @@ struct CameraRow: View {
                     ExpandedMedia(camera: camera)
                     details
                 }
+                .offset(x: dragOffset)
+                // Simultaneous so vertical drags still scroll the list.
+                .simultaneousGesture(swipe)
             } else {
                 HStack(alignment: .top, spacing: 12) {
                     SnapshotView(camera: camera, refreshSeconds: max(camera.snapshotRefreshSeconds, 60))
@@ -40,6 +48,23 @@ struct CameraRow: View {
         .background(isSelected ? Color.accentColor.opacity(0.08) : .clear)
         .contentShape(.rect)
         .onTapGesture(perform: onTap)
+    }
+
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onChanged { value in
+                let t = value.translation
+                // Follow the finger (damped) only for clearly horizontal drags.
+                dragOffset = abs(t.width) > abs(t.height) * 1.5 ? t.width * 0.4 : 0
+            }
+            .onEnded { value in
+                let t = value.translation
+                let flick = value.predictedEndTranslation.width
+                let horizontal = abs(t.width) > abs(t.height) * 1.5
+                withAnimation(.spring(duration: 0.3)) { dragOffset = 0 }
+                guard horizontal, abs(t.width) > 60 || abs(flick) > 200 else { return }
+                onStep(t.width < 0 ? 1 : -1)
+            }
     }
 
     private var details: some View {
