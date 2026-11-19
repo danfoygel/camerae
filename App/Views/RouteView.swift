@@ -33,6 +33,8 @@ struct RouteView: View {
         }
         .navigationTitle(plan.to)
         .navigationBarTitleDisplayMode(.inline)
+        // Horizontal swipes on the expanded camera step through cameras; don't let them pop the screen.
+        .swipeBackDisabled()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Toggle(isOn: $liveOnly) { Label("Live only", systemImage: "video.fill") }
