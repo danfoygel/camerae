@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "CamCore", targets: ["CamCore"]),
     ],
     targets: [
-        .target(name: "CamCore"),
-        .testTarget(name: "CamCoreTests", dependencies: ["CamCore"]),
+        .target(name: "CamCore", resources: [.copy("Resources/Placeholders")]),
+        .testTarget(name: "CamCoreTests", dependencies: ["CamCore"], resources: [.copy("Fixtures")]),
     ]
 )
