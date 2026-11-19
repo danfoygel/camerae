@@ -89,10 +89,20 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
   for development only; get the key and permission before shipping.
 - Attribution for each source is shown at the bottom of every route.
 
+## App Store
+
+- `appstore/listing.md`: name, description, keywords, privacy answers and review notes to paste
+  into App Store Connect.
+- `appstore/screenshots/`: 6.9" screenshots. `appstore/take_screenshots.sh` retakes them.
+- `docs/`: support page and privacy policy, served by GitHub Pages at
+  https://danfoygel.github.io/camerae/.
+- `App/PrivacyInfo.xcprivacy`: privacy manifest (declares the `UserDefaults` use for Home and
+  recent places). Update it if the app adds tracking, data collection or another required-reason API.
+
 ## Not done yet
 
 - Hosting the catalog and refreshing it in the app. The app currently uses only the copy
   bundled at build time.
 - More states (the IBI/Arcadis 511 adapter reuses Nevada's code shape for about 10 more
   states).
-- App icon, and checking the CarPlay and in-motion rules before any driving-mode features.
+- Checking the CarPlay and in-motion rules before any driving-mode features.

@@ -24,6 +24,9 @@ struct SearchView: View {
         ("San Diego → Sacramento", "San Diego, CA", "Sacramento, CA"),
     ]
 
+    /// Shown on the search screen and under every route's camera list.
+    static let drivingNotice = "For trip planning and passengers. Don't watch cameras while driving."
+
     var body: some View {
         NavigationStack {
             List {
@@ -65,6 +68,8 @@ struct SearchView: View {
 
                     Section {
                         coverage
+                    } footer: {
+                        Text(Self.drivingNotice)
                     }
                 }
             }

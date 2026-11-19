@@ -21,7 +21,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.danfoygel.camerae
         DEVELOPMENT_TEAM: ZVU48K8YCD
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1"
@@ -30,6 +30,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Camerae
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.navigation
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Camerae uses your location as the starting point of a route and to show where you are on the map."
 schemes:
