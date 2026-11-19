@@ -14,8 +14,8 @@ tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the
 
 App (SwiftUI, iOS 18+)
   SearchView    MKLocalSearchCompleter autocomplete, "Current Location"
-  RoutePlanner  MKDirections → RouteGeometry → RouteMatcher (CamCore)
-  RouteView     Map with route + camera dots, ordered camera list
+  RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
+  RouteView     route picker, Map with routes + camera dots, ordered camera list
   CameraRow     snapshot that refreshes only while on screen; tap to expand
   LivePlayback  one shared AVPlayer that moves to the selected camera
 
@@ -52,6 +52,11 @@ python3 tools/build_catalog.py --skip-stream-check   # faster, keeps dead stream
 
 # Core logic tests
 cd CamCore && swift test
+
+# Re-render the app icon after editing design/AppIcon.svg (needs Chrome and Pillow)
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+  --window-size=1024,1024 --screenshot=/tmp/icon.png "file://$PWD/design/AppIcon.svg"
+python3 -c "from PIL import Image; Image.open('/tmp/icon.png').convert('RGB').save('App/Assets.xcassets/AppIcon.appiconset/AppIcon.png')"
 
 # Generate the Xcode project and build
 xcodegen generate

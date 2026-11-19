@@ -2,13 +2,21 @@ import CamCore
 import CoreLocation
 import MapKit
 
-/// A computed route and the cameras along it, in route order.
+/// The driving routes for a trip, each with the cameras along it in route order.
 struct PlannedRoute: Identifiable {
+    struct Option: Identifiable {
+        let id: Int
+        let route: MKRoute
+        let cameras: [RouteCamera]
+    }
+
     let id = UUID()
     let from: String
     let to: String
-    let route: MKRoute
-    let cameras: [RouteCamera]
+    /// MapKit's recommended route first, then any alternatives it offered.
+    let options: [Option]
+    /// The resolved endpoints worth offering again as suggestions (excludes Current Location).
+    let places: [RecentPlace]
 }
 
 @MainActor
@@ -31,15 +39,24 @@ enum RoutePlanner {
         if from == .currentLocation || to == .currentLocation {
             try await LocationPermission.shared.ensureAuthorized()
         }
+        let source = try await from.resolve()
+        let destination = try await to.resolve()
         let request = MKDirections.Request()
-        request.source = try await from.resolve()
-        request.destination = try await to.resolve()
+        request.source = source
+        request.destination = destination
         request.transportType = .automobile
-        guard let route = try await MKDirections(request: request).calculate().routes.first else {
-            throw PlanError.noRoute
+        request.requestsAlternateRoutes = true
+        let routes = try await MKDirections(request: request).calculate().routes
+        guard !routes.isEmpty else { throw PlanError.noRoute }
+        let options = routes.enumerated().map { index, route in
+            PlannedRoute.Option(id: index, route: route, cameras: matcher.match(geometry(of: route)))
         }
-        return PlannedRoute(from: from.title, to: to.title, route: route,
-                            cameras: matcher.match(geometry(of: route)))
+        return PlannedRoute(from: from.title, to: to.title, options: options,
+                            places: [(from, source), (to, destination)].compactMap { endpoint, item in
+                                guard endpoint != .currentLocation else { return nil }
+                                let c = item.coordinate
+                                return RecentPlace(title: endpoint.title, latitude: c.latitude, longitude: c.longitude)
+                            })
     }
 
     /// Converts an MKRoute to the matcher's geometry.
@@ -59,10 +76,14 @@ enum RoutePlanner {
 }
 
 extension MKPolyline {
-    var coordinates: [Coordinate] {
+    var clCoordinates: [CLLocationCoordinate2D] {
         var points = [CLLocationCoordinate2D](repeating: kCLLocationCoordinate2DInvalid, count: pointCount)
         getCoordinates(&points, range: NSRange(location: 0, length: pointCount))
-        return points.map { Coordinate(lat: $0.latitude, lon: $0.longitude) }
+        return points
+    }
+
+    var coordinates: [Coordinate] {
+        clCoordinates.map { Coordinate(lat: $0.latitude, lon: $0.longitude) }
     }
 }
 
