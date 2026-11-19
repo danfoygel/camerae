@@ -25,20 +25,19 @@ enum RoutePlanner {
         case placeNotFound
         case noRoute
         case locationDenied
+        case locationUnavailable
 
         var errorDescription: String? {
             switch self {
             case .placeNotFound: "Couldn't find that place."
             case .noRoute: "No driving route was found."
             case .locationDenied: "Location access is off. Enter a starting address instead."
+            case .locationUnavailable: "Couldn't find your current location. Try again, or enter a starting address."
             }
         }
     }
 
     static func plan(from: Endpoint, to: Endpoint, matcher: RouteMatcher) async throws -> PlannedRoute {
-        if from == .currentLocation || to == .currentLocation {
-            try await LocationPermission.shared.ensureAuthorized()
-        }
         let source = try await from.resolve()
         let destination = try await to.resolve()
         let request = MKDirections.Request()
@@ -87,21 +86,48 @@ extension MKPolyline {
     }
 }
 
-/// Requests when-in-use location access once, for "Current Location" starts and the blue dot on route maps.
+/// The device's location for "Current Location" endpoints, and when-in-use access for them and
+/// the blue dot on route maps (asked for the first time either needs it).
+///
+/// Fetched here rather than through `MKMapItem.forCurrentLocation()`, whose lookup inside
+/// MKDirections can wait indefinitely for a fix and leave route planning stuck.
 @MainActor
-final class LocationPermission: NSObject, CLLocationManagerDelegate {
-    static let shared = LocationPermission()
+final class CurrentLocation: NSObject, CLLocationManagerDelegate {
+    static let shared = CurrentLocation()
+    /// A fix at least this recent is reused instead of asking for a new one.
+    private static let maxAge: TimeInterval = 60
+    private static let timeout: Duration = .seconds(20)
+
     private let manager = CLLocationManager()
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var authorizationWaiters: [CheckedContinuation<Void, Never>] = []
+    private var locationWaiters: [CheckedContinuation<CLLocationCoordinate2D, Error>] = []
+    private var locationTimeout: Task<Void, Never>?
 
     override init() {
         super.init()
         manager.delegate = self
     }
 
+    func coordinate() async throws -> CLLocationCoordinate2D {
+        try await ensureAuthorized()
+        if let last = manager.location, -last.timestamp.timeIntervalSinceNow < Self.maxAge {
+            return last.coordinate
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            locationWaiters.append(continuation)
+            guard locationWaiters.count == 1 else { return }
+            manager.requestLocation()
+            locationTimeout = Task { [weak self] in
+                try? await Task.sleep(for: Self.timeout)
+                guard !Task.isCancelled else { return }
+                self?.finishLocation(.failure(RoutePlanner.PlanError.locationUnavailable))
+            }
+        }
+    }
+
     func ensureAuthorized() async throws {
         if manager.authorizationStatus == .notDetermined {
-            await withCheckedContinuation { waiters.append($0); manager.requestWhenInUseAuthorization() }
+            await withCheckedContinuation { authorizationWaiters.append($0); manager.requestWhenInUseAuthorization() }
         }
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse: return
@@ -109,11 +135,30 @@ final class LocationPermission: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    private func finishLocation(_ result: Result<CLLocationCoordinate2D, Error>) {
+        locationTimeout?.cancel()
+        locationTimeout = nil
+        locationWaiters.forEach { $0.resume(with: result) }
+        locationWaiters = []
+    }
+
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         MainActor.assumeIsolated {
             guard self.manager.authorizationStatus != .notDetermined else { return }
-            waiters.forEach { $0.resume() }
-            waiters = []
+            authorizationWaiters.forEach { $0.resume() }
+            authorizationWaiters = []
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let coordinate = locations.last?.coordinate else { return }
+        MainActor.assumeIsolated { finishLocation(.success(coordinate)) }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        let denied = (error as? CLError)?.code == .denied
+        MainActor.assumeIsolated {
+            finishLocation(.failure(denied ? RoutePlanner.PlanError.locationDenied : .locationUnavailable))
         }
     }
 }

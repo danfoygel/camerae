@@ -68,7 +68,7 @@ struct RouteView: View {
         }
         .onDisappear { playback.stop() }
         // For the blue dot; a no-op once the user has answered the prompt.
-        .task { try? await LocationPermission.shared.ensureAuthorized() }
+        .task { try? await CurrentLocation.shared.ensureAuthorized() }
     }
 
     private var routeLines: [RouteLine] {

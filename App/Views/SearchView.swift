@@ -14,7 +14,7 @@ struct SearchView: View {
     @State private var from: Endpoint? = .currentLocation
     @State private var to: Endpoint?
     @FocusState private var focus: Field?
-    @State private var isPlanning = false
+    @State private var planning: Task<Void, Never>?
     @State private var errorMessage: String?
     @State private var planned: PlannedRoute?
 
@@ -36,14 +36,21 @@ struct SearchView: View {
                     suggestions
                 } else {
                     Section {
-                        Button(action: planRoute) {
+                        Button {
+                            if isPlanning { cancelPlanning() } else { planRoute() }
+                        } label: {
                             HStack {
                                 Spacer()
-                                if isPlanning { ProgressView() } else { Text("Find Cameras on Route").bold() }
+                                if isPlanning {
+                                    ProgressView()
+                                    Text("Cancel")
+                                } else {
+                                    Text("Find Cameras on Route").bold()
+                                }
                                 Spacer()
                             }
                         }
-                        .disabled(!canPlan)
+                        .disabled(!isPlanning && !canPlan)
                     } footer: {
                         if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
                     }
@@ -197,6 +204,8 @@ struct SearchView: View {
         }
     }
 
+    private var isPlanning: Bool { planning != nil }
+
     private var canPlan: Bool {
         catalog.matcher != nil && !isPlanning
             && !fromText.trimmingCharacters(in: .whitespaces).isEmpty
@@ -252,18 +261,26 @@ struct SearchView: View {
         let start = from ?? typed(fromText)
         let end = to ?? typed(toText)
         focus = nil
-        isPlanning = true
         errorMessage = nil
-        Task {
-            defer { isPlanning = false }
+        planning = Task {
+            // A cancelled plan may still finish later; by then a newer one may own `planning`.
+            defer { if !Task.isCancelled { planning = nil } }
             do {
                 let plan = try await RoutePlanner.plan(from: start, to: end, matcher: matcher)
+                guard !Task.isCancelled else { return }
                 plan.places.forEach(recents.add)
                 planned = plan
             } catch {
+                guard !Task.isCancelled else { return }
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    /// Gives up on the current plan right away, even if a MapKit call inside it never returns.
+    private func cancelPlanning() {
+        planning?.cancel()
+        planning = nil
     }
 
     /// Development shortcut: `-from "San Francisco, CA" -to "Reno, NV"` plans a trip at launch
