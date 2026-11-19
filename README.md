@@ -127,7 +127,7 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
 
 - `appstore/listing.md`: name, description, keywords, privacy answers and review notes to paste
   into App Store Connect.
-- `appstore/screenshots/`: 6.9" screenshots. `appstore/take_screenshots.sh` retakes them.
+- `appstore/screenshots/`: screenshots (6.9", plus the 6.3" set App Store Connect requires). `appstore/take_screenshots.sh` retakes them.
 - `docs/`: support page and privacy policy, served by GitHub Pages at
   https://danfoygel.github.io/camerae/.
 - `App/PrivacyInfo.xcprivacy`: privacy manifest (declares the `UserDefaults` use for Home and
