@@ -12,6 +12,11 @@ Sources:
             backs nvroads.com/list/cameras (undocumented; dev use only).
 
 Usage: python3 tools/build_catalog.py [--out catalog/cameras.json] [--only caltrans,nevada]
+           [--stream-health FILE --stream-check-minutes N]
+
+A full stream check takes over an hour from GitHub's runners, so the scheduled build passes
+--stream-health and a time budget: each run probes the streams checked longest ago, and the
+file carries every stream's last result forward.
 """
 
 import argparse
@@ -226,8 +231,7 @@ def parse_wkt_point(wkt):
 
 ADAPTERS = {"caltrans": caltrans_cameras, "nevada": nevada_cameras}
 
-STREAM_CHECK_WORKERS = 4
-CONFIRM_WORKERS = 2
+STREAM_CHECK_WORKERS = 3
 
 # 403 is deliberately absent: Caltrans's Wowza hosts answer 403 when busy.
 DEAD_STATUSES = {404, 410}
@@ -260,24 +264,48 @@ def confirmed_dead(url):
         return False
 
 
-def drop_dead_streams(cameras):
+def stream_dead(url):
+    """True if the playlist is gone. A quick probe settles most streams; anything but a clean
+    200 gets the slower confirm probe."""
+    return not answers_ok(url) and confirmed_dead(url)
+
+
+def drop_dead_streams(cameras, health, minutes=None):
     """Clear hlsURL on cameras whose playlist is gone, so the app shows their snapshot
     instead of waiting on a stream that will never start. Feeds keep listing dead streams
-    (e.g. Caltrans D7 returns 404 for some 'in service' cameras)."""
+    (e.g. Caltrans D7 returns 404 for some 'in service' cameras).
+
+    `health` maps each stream URL to its last result, {"checked": iso, "dead": bool}, and is
+    updated in place. Streams never checked go first, then the ones checked longest ago. With
+    `minutes`, no new probe starts after that budget, and the rest keep their last result."""
     from concurrent.futures import ThreadPoolExecutor
 
     with_video = [c for c in cameras if c["hlsURL"]]
-    with ThreadPoolExecutor(max_workers=STREAM_CHECK_WORKERS) as pool:
-        ok = list(pool.map(lambda c: answers_ok(c["hlsURL"]), with_video))
-    suspects = [cam for cam, fine in zip(with_video, ok) if not fine]
-    print(f"stream check: {len(suspects)} of {len(with_video)} streams suspect; confirming", file=sys.stderr)
+    urls = list(dict.fromkeys(c["hlsURL"] for c in with_video))
+    for url in set(health) - set(urls):
+        del health[url]  # the stream left the catalog
+    urls.sort(key=lambda u: health[u]["checked"] if u in health else "")
 
-    with ThreadPoolExecutor(max_workers=CONFIRM_WORKERS) as pool:
-        dead = list(pool.map(lambda c: confirmed_dead(c["hlsURL"]), suspects))
-    for cam, is_dead in zip(suspects, dead):
-        if is_dead:
+    deadline = time.monotonic() + minutes * 60 if minutes else None
+
+    def check(url):
+        if deadline and time.monotonic() > deadline:
+            return None
+        return stream_dead(url)
+
+    with ThreadPoolExecutor(max_workers=STREAM_CHECK_WORKERS) as pool:
+        results = list(pool.map(check, urls))
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    probed = [(u, dead) for u, dead in zip(urls, results) if dead is not None]
+    for url, dead in probed:
+        health[url] = {"checked": now, "dead": dead}
+
+    for cam in with_video:
+        if health.get(cam["hlsURL"], {}).get("dead"):
             cam["hlsURL"] = None
-    print(f"stream check: {sum(dead)} dead streams cleared", file=sys.stderr)
+    unchecked = sum(1 for u in urls if u not in health)
+    print(f"stream check: probed {len(probed)} of {len(urls)} streams, {sum(d for _, d in probed)} found dead; "
+          f"{sum(1 for h in health.values() if h['dead'])} dead in all, {unchecked} never checked", file=sys.stderr)
 
 
 def main():
@@ -286,6 +314,10 @@ def main():
     parser.add_argument("--only", help="comma-separated source ids")
     parser.add_argument("--skip-stream-check", action="store_true",
                         help="don't probe each HLS playlist (faster, but keeps dead streams)")
+    parser.add_argument("--stream-health", metavar="FILE",
+                        help="read and update each stream's last check result in FILE")
+    parser.add_argument("--stream-check-minutes", type=float, metavar="N",
+                        help="start no new stream probe after N minutes")
     args = parser.parse_args()
 
     wanted = args.only.split(",") if args.only else list(ADAPTERS)
@@ -303,7 +335,14 @@ def main():
         unique.append(cam)
 
     if not args.skip_stream_check:
-        drop_dead_streams(unique)
+        health = {}
+        if args.stream_health and os.path.exists(args.stream_health):
+            with open(args.stream_health) as f:
+                health = json.load(f)
+        drop_dead_streams(unique, health, args.stream_check_minutes)
+        if args.stream_health:
+            with open(args.stream_health, "w") as f:
+                json.dump(health, f, indent=0, sort_keys=True)
 
     catalog = {
         "version": 1,
