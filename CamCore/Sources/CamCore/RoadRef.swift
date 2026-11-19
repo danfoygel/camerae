@@ -46,9 +46,16 @@ public struct RoadRef: Hashable, Sendable, CustomStringConvertible {
     }
 
     /// Like `parse`, but ignores destinations: "Merge onto I-580 E toward I-80" → {I-580}.
+    /// An instruction that names no road of its own ("Continue toward US-101 North") is
+    /// following the signs for the highway ahead, so that highway is the one traveled.
     public static func parseTraveledRoads(fromInstruction text: String) -> Set<RoadRef> {
         if let r = text.range(of: #"\b(toward|towards|for)\b"#, options: [.regularExpression, .caseInsensitive]) {
-            return parse(String(text[..<r.lowerBound]))
+            let head = String(text[..<r.lowerBound])
+            let refs = parse(head)
+            if refs.isEmpty && head.range(of: #"\b(onto|on)\b"#, options: [.regularExpression, .caseInsensitive]) == nil {
+                return parse(String(text[r.upperBound...]))
+            }
+            return refs
         }
         return parse(text)
     }
