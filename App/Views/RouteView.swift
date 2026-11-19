@@ -101,7 +101,7 @@ struct RouteView: View {
                                   number: numbers[routeCamera.id] ?? 0,
                                   isSelected: routeCamera.id == selectedID) {
                             select(routeCamera.id == selectedID ? nil : routeCamera.id)
-                        }
+                        } onStep: { step(by: $0) }
                         .id(routeCamera.id)
                         Divider().padding(.leading)
                     }
@@ -127,6 +127,13 @@ struct RouteView: View {
 
     private func select(_ id: String?) {
         selectedID = id
+    }
+
+    /// Moves the selection to the neighboring camera in the visible list, stopping at either end.
+    private func step(by offset: Int) {
+        guard let index = cameras.firstIndex(where: { $0.id == selectedID }),
+              cameras.indices.contains(index + offset) else { return }
+        select(cameras[index + offset].id)
     }
 }
 
