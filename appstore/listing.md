@@ -1,4 +1,4 @@
-# App Store listing — Camerae 1.1
+# App Store listing — Camerae 1.2
 
 Copy these into App Store Connect. Character limits are Apple's.
 
@@ -57,9 +57,9 @@ camera,highway,road,conditions,caltrans,nevada,illinois,chicago,511,tahoe,reno,i
 
 "traffic" and "cams" are left out because the app name already has them; Apple indexes the name.
 
-## What's New (version 1.1)
+## What's New (version 1.2)
 
-Illinois is here: about 3,800 camera views from IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties, from Chicago to Peoria and beyond. Illinois cameras show snapshots that refresh every few minutes, and offline ones are marked.
+Introducing Camerae Live. Live video from highway cameras is now a subscription, $0.99 a month or $9.99 a year, and your first 72 hours of live video are free, starting the first time you press play. Snapshots stay free for every camera.
 
 ## In-app purchases
 
