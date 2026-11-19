@@ -41,7 +41,13 @@ streams directly. Native apps aren't subject to browser CORS rules.
   an overpass or ramp view.
 - Freeway names inherit numbers seen elsewhere on the route ("San Bernardino Fwy, I-10 East").
 - Cameras with no road information are kept only within 50 m. When the source gives a camera
-  direction (Caltrans N/S/E/W), it must line up with the direction of travel.
+  direction (Caltrans N/S/E/W), it must line up with the direction of travel. That field is
+  shared by every view on a pole, so it gives the road's axis, not which way a camera looks.
+- Matched cameras within 70 m of a site's first camera become one site with several views
+  (Caltrans often has a view each way from one pole or intersection). The view direction comes
+  from the name ("Looking North", "East View", `T256E --`, "- North", "(N)"). The view looking
+  the way the route travels is shown first; unlabeled views rank above ones known to look back.
+  The other views are a tap away in the expanded row.
 
 ## Running
 

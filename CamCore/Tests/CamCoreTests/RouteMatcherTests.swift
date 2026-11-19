@@ -109,6 +109,53 @@ struct RouteMatcherTests {
         #expect(matcher.match(Self.eastbound).map(\.id) == ["aligned", "unknown"])
     }
 
+    @Test func groupsPolePairIntoOneSiteLookingAhead() {
+        let matcher = RouteMatcher(cameras: [
+            Self.camera("lookE", east: 6_000, north: 20, road: "I-80", name: "I-80 : Pole 7 - Looking East"),
+            Self.camera("lookW", east: 6_000, north: 20, road: "I-80", name: "I-80 : Pole 7 - Looking West"),
+            Self.camera("solo", east: 6_300, north: 20, road: "I-80", name: "I-80 : Next Exit"),
+        ])
+        let eastbound = matcher.sites(along: Self.eastbound)
+        #expect(eastbound.map { $0.views.map(\.id) } == [["lookE", "lookW"], ["solo"]])
+        #expect(eastbound[0].views.map(\.facing) == [.ahead, .behind])
+
+        let westbound = RouteGeometry(
+            coordinates: [Self.at(east: 20_000), Self.at(east: 0)],
+            instructions: "Merge onto I-80 W",
+            expectedTravelTime: 1_000
+        )
+        #expect(matcher.sites(along: westbound).map { $0.views.map(\.id) } == [["solo"], ["lookW", "lookE"]])
+    }
+
+    @Test func closelySpacedCamerasDoNotChainIntoOneSite() {
+        let matcher = RouteMatcher(cameras: [
+            Self.camera("a", east: 6_000, north: 20, road: "I-80"),
+            Self.camera("b", east: 6_050, north: 20, road: "I-80"),
+            Self.camera("c", east: 6_100, north: 20, road: "I-80"),
+        ])
+        #expect(matcher.sites(along: Self.eastbound).map { $0.views.map(\.id) } == [["a", "b"], ["c"]])
+    }
+
+    @Test func unlabeledViewRanksAboveOneLookingBack() {
+        let matcher = RouteMatcher(cameras: [
+            Self.camera("back", east: 6_000, north: 20, road: "I-80", name: "I-80 : Hilfiker (W)"),
+            Self.camera("other", east: 6_005, north: 20, road: "I-80", name: "I-80 : Hilfiker 2"),
+        ])
+        #expect(matcher.sites(along: Self.eastbound).map { $0.views.map(\.id) } == [["other", "back"]])
+    }
+
+    @Test func filteringKeepsSiteIdentity() throws {
+        let matcher = RouteMatcher(cameras: [
+            Self.camera("ahead", east: 6_000, north: 20, road: "I-80", name: "Looking East"),
+            Self.camera("back", east: 6_000, north: 20, road: "I-80", name: "Looking West"),
+        ])
+        let site = try #require(matcher.sites(along: Self.eastbound).first)
+        let filtered = try #require(site.filter { $0.id == "back" })
+        #expect(filtered.id == "ahead")
+        #expect(filtered.primary.id == "back")
+        #expect(site.filter { _ in false } == nil)
+    }
+
     @Test func handlesLongRouteQuickly() {
         // ~1,000 km of route with 5,000 cameras scattered around it.
         var coordinates: [Coordinate] = []

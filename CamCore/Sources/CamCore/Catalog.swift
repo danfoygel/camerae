@@ -32,7 +32,9 @@ public struct Camera: Codable, Sendable, Identifiable, Hashable {
     public var lon: Double
     /// Route designation ("I-80") or free-text roadway ("I80 @ East Verdi").
     public var road: String?
-    /// Compass side/direction the source reports, if any: N, S, E or W.
+    /// Compass direction the source reports, if any: N, S, E or W. Caltrans gives every view on
+    /// a pole the same value, so this says which road a camera covers, not which way it looks
+    /// (see `viewBearing`).
     public var direction: String?
     public var snapshotURL: URL?
     public var snapshotRefreshSeconds: Int
@@ -81,6 +83,9 @@ public struct Camera: Codable, Sendable, Identifiable, Hashable {
     public var roadRefs: Set<RoadRef> {
         RoadRef.parse(road ?? "").union(RoadRef.parse(name))
     }
+
+    /// Compass bearing the camera looks toward, when its name says ("Looking North").
+    public var viewBearing: Double? { ViewDirection.bearing(fromName: name) }
 
     /// Axis of the road the camera covers, in degrees, when the source gives a direction.
     var roadAxis: Double? {

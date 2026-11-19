@@ -2,13 +2,13 @@ import CamCore
 import CoreLocation
 import MapKit
 
-/// A computed route and the cameras along it, in route order.
+/// A computed route and the camera sites along it, in route order.
 struct PlannedRoute: Identifiable {
     let id = UUID()
     let from: String
     let to: String
     let route: MKRoute
-    let cameras: [RouteCamera]
+    let sites: [RouteSite]
 }
 
 @MainActor
@@ -39,7 +39,7 @@ enum RoutePlanner {
             throw PlanError.noRoute
         }
         return PlannedRoute(from: from.title, to: to.title, route: route,
-                            cameras: matcher.match(geometry(of: route)))
+                            sites: matcher.sites(along: geometry(of: route)))
     }
 
     /// Converts an MKRoute to the matcher's geometry.
