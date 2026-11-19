@@ -13,7 +13,7 @@ tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the
    (run on a schedule)        (normalized schema)
 
 App (SwiftUI, iOS 18+)
-  SearchView    MKLocalSearchCompleter autocomplete, "Current Location"
+  SearchView    MKLocalSearchCompleter autocomplete, "Current Location", saved Home
   RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
   RouteView     route picker, Map with routes + camera dots, ordered camera list
   CameraRow     snapshot that refreshes only while on screen; tap to expand; OFFLINE badge

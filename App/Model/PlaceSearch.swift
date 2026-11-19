@@ -6,6 +6,7 @@ enum Endpoint: Equatable {
     case completion(MKLocalSearchCompletion)
     case query(String)
     case recent(RecentPlace)
+    case home(RecentPlace)
 
     var title: String {
         switch self {
@@ -13,6 +14,15 @@ enum Endpoint: Equatable {
         case .completion(let c): c.subtitle.isEmpty ? c.title : "\(c.title), \(c.subtitle)"
         case .query(let q): q
         case .recent(let place): place.title
+        case .home: "Home"
+        }
+    }
+
+    /// Current Location and Home are shown by name rather than address, and aren't added to recents.
+    var isShortcut: Bool {
+        switch self {
+        case .currentLocation, .home: true
+        case .completion, .query, .recent: false
         }
     }
 
@@ -28,6 +38,8 @@ enum Endpoint: Equatable {
             return try await Self.first(request)
         case .recent(let place):
             return MKMapItem.at(place.coordinate, name: place.title)
+        case .home(let place):
+            return MKMapItem.at(place.coordinate, name: "Home")
         }
     }
 

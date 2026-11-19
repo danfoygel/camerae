@@ -15,7 +15,7 @@ struct PlannedRoute: Identifiable {
     let to: String
     /// MapKit's recommended route first, then any alternatives it offered.
     let options: [Option]
-    /// The resolved endpoints worth offering again as suggestions (excludes Current Location).
+    /// The resolved endpoints worth offering again as suggestions (excludes Current Location and Home).
     let places: [RecentPlace]
 }
 
@@ -52,7 +52,7 @@ enum RoutePlanner {
         }
         return PlannedRoute(from: from.title, to: to.title, options: options,
                             places: [(from, source), (to, destination)].compactMap { endpoint, item in
-                                guard endpoint != .currentLocation else { return nil }
+                                guard !endpoint.isShortcut else { return nil }
                                 let c = item.coordinate
                                 return RecentPlace(title: endpoint.title, latitude: c.latitude, longitude: c.longitude)
                             })
@@ -86,7 +86,8 @@ extension MKPolyline {
     }
 }
 
-/// The device's location for "Current Location" endpoints, asking for when-in-use access the first time.
+/// The device's location for "Current Location" endpoints, and when-in-use access for them and
+/// the blue dot on route maps (asked for the first time either needs it).
 ///
 /// Fetched here rather than through `MKMapItem.forCurrentLocation()`, whose lookup inside
 /// MKDirections can wait indefinitely for a fix and leave route planning stuck.
@@ -124,7 +125,7 @@ final class CurrentLocation: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    private func ensureAuthorized() async throws {
+    func ensureAuthorized() async throws {
         if manager.authorizationStatus == .notDetermined {
             await withCheckedContinuation { authorizationWaiters.append($0); manager.requestWhenInUseAuthorization() }
         }

@@ -67,6 +67,8 @@ struct RouteView: View {
             }
         }
         .onDisappear { playback.stop() }
+        // For the blue dot; a no-op once the user has answered the prompt.
+        .task { try? await CurrentLocation.shared.ensureAuthorized() }
     }
 
     private var routeLines: [RouteLine] {
@@ -94,8 +96,13 @@ struct RouteView: View {
                     }
                     .annotationTitles(.hidden)
                 }
+                UserAnnotation()
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+            }
             .onTapGesture { point in
                 if let tapped = alternative(near: point, proxy: proxy) { choose(tapped) }
             }
