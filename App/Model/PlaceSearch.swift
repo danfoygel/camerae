@@ -29,7 +29,7 @@ enum Endpoint: Equatable {
     @MainActor func resolve() async throws -> MKMapItem {
         switch self {
         case .currentLocation:
-            return MKMapItem.forCurrentLocation()
+            return MKMapItem.at(try await CurrentLocation.shared.coordinate(), name: title)
         case .completion(let completion):
             return try await Self.first(MKLocalSearch.Request(completion: completion))
         case .query(let query):
