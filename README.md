@@ -4,8 +4,9 @@ An iPhone app: it opens on a map of the highway cameras around you (tap one for 
 Enter a start and a destination to get a driving route and see every camera along it in the
 order you'll pass them, with live video playing inline.
 
-Coverage today: **California (Caltrans)** and **Nevada (NDOT / nvroads.com)**: about 4,100
-cameras, of which about 2,800 have live HLS video.
+Coverage today: **California (Caltrans)**, **Nevada (NDOT / nvroads.com)** and **Illinois
+(IDOT, the Tollway and three counties, via Travel Midwest)**: about 7,900 cameras, of which
+about 2,800 have live HLS video. Illinois is snapshots only.
 
 ## How it fits together
 
@@ -126,6 +127,15 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
   docs but hasn't been run against a real key yet. Without a key, the builder falls back to the
   public list endpoint behind nvroads.com/list/cameras. That endpoint is undocumented, so it's
   for development only; get the key and permission before shipping.
+- **Illinois** (IDOT's "Illinois Gateway Traffic Cameras" ArcGIS layer, `TrafficCamerasTM_Public`):
+  keyless, CC BY-SA 2.0, about 3,800 views from IDOT, the Tollway, and Lake, DuPage and Kane
+  counties; most of the Chicago area's are county intersection cameras. Snapshots only, from
+  `cctv.travelmidwest.com` and `lakecountypassage.com`, typically 5 to 15 minutes old. The
+  layer has no road field: the builder takes the road from the snapshot's file name and the
+  location text, and spells Illinois routes `SR-` because the app's road parser doesn't read
+  `IL-`. DuPage and Lake County serve a "Snapshots Unavailable" image for dead cameras, which
+  the app doesn't recognize yet. Travel Midwest also has live video for some cameras, but only
+  through its site's undocumented API, so the builder doesn't use it.
 - Attribution for each source is shown at the bottom of every route.
 
 ## App Store
@@ -142,4 +152,5 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
 
 - More states (the IBI/Arcadis 511 adapter reuses Nevada's code shape for about 10 more
   states).
+- The app's coverage text and starting map view still say California and Nevada.
 - Checking the CarPlay and in-motion rules before any driving-mode features.
