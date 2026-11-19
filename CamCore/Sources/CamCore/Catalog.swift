@@ -47,6 +47,11 @@ public struct CameraCatalog: Codable, Sendable {
     public func source(for camera: Camera) -> Source? {
         sources.first { $0.id == camera.source }
     }
+
+    /// The sources as a list: "California (Caltrans), Nevada (NDOT), and Illinois (IDOT)".
+    public var coverageDescription: String {
+        sources.map(\.name).formatted(.list(type: .and))
+    }
 }
 
 public struct Camera: Codable, Sendable, Identifiable, Hashable {

@@ -31,9 +31,9 @@ App (SwiftUI, iOS 18+)
 CamCore (Swift package, no UIKit/MapKit)
   RouteMatcher  grid-indexed corridor search → projection for distance along the route →
                 road-name filters → ordered list with distance and ETA
-  RoadRef       parses "I-80", "I80", "US50", "CA-99 N", "Hwy 50", "215 WB …"
+  RoadRef       parses "I-80", "I80", "US50", "CA-99 N", "IL 53", "Hwy 50", "215 WB …"
   PlaceholderDetector  16×12 thumbnail compared against the stock error images in
-                Resources/Placeholders (Caltrans and NDOT send these as normal 200 OK images)
+                Resources/Placeholders (the DOTs and counties send these as normal 200 OK images)
 ```
 
 No server is needed. MapKit does geocoding and routing on the device, matching runs on the
@@ -132,10 +132,10 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
   counties; most of the Chicago area's are county intersection cameras. Snapshots only, from
   `cctv.travelmidwest.com` and `lakecountypassage.com`, typically 5 to 15 minutes old. The
   layer has no road field: the builder takes the road from the snapshot's file name and the
-  location text, and spells Illinois routes `SR-` because the app's road parser doesn't read
-  `IL-`. DuPage and Lake County serve a "Snapshots Unavailable" image for dead cameras, which
-  the app doesn't recognize yet. Travel Midwest also has live video for some cameras, but only
-  through its site's undocumented API, so the builder doesn't use it.
+  location text, and spells Illinois routes `SR-` because 1.0's road parser doesn't read `IL-`
+  (1.1 does). DuPage and Lake County serve a "Snapshots Unavailable" image for dead cameras;
+  1.1 recognizes it, while 1.0 shows it as is. Travel Midwest also has live video for some
+  cameras, but only through its site's undocumented API, so the builder doesn't use it.
 - Attribution for each source is shown at the bottom of every route.
 
 ## App Store
@@ -152,5 +152,4 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
 
 - More states (the IBI/Arcadis 511 adapter reuses Nevada's code shape for about 10 more
   states).
-- The app's coverage text and starting map view still say California and Nevada.
 - Checking the CarPlay and in-motion rules before any driving-mode features.

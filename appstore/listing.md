@@ -1,4 +1,4 @@
-# App Store listing — Camerae 1.0
+# App Store listing — Camerae 1.1
 
 Copy these into App Store Connect. Character limits are Apple's.
 
@@ -23,7 +23,7 @@ If "Camerae: Route Traffic Cams" is rejected as too similar to another name, pla
 
 ## Promotional text (170)
 
-See the road before you drive it. Every highway camera on your route, in order, with live video. California and Nevada.
+See the road before you drive it. Every highway camera on your route, in order, with live video where the state provides it. California, Nevada and Illinois.
 
 ## Description (4,000)
 
@@ -35,26 +35,28 @@ Check for snow on the pass, a backup at the bridge, or fog in the valley before 
 
 • A map of the cameras around you, with live video a tap away
 • Every camera on your route, in driving order
-• Live video for over half the cameras, with snapshots for the rest
+• Live video for most California and Nevada cameras, with snapshots for the rest
 • Compare alternate routes, each with its own cameras
 • Several views from one pole, starting with the one facing your direction of travel
 • Offline cameras are marked, so you don't wait on a dead feed
 • Start from your current location, or save a Home
 • No account, no ads, no tracking
 
-Coverage: about 4,000 cameras across California (Caltrans) and Nevada (NDOT).
+Coverage: about 7,900 cameras across California (Caltrans), Nevada (NDOT) and Illinois (IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties). Illinois cameras are snapshots only.
 
 Camerae is for planning a trip and for passengers. Please don't watch cameras while you drive.
 
-Camera imagery courtesy of Caltrans and NDOT / nvroads.com. Camerae is not affiliated with or endorsed by either agency.
+Camera imagery courtesy of Caltrans, NDOT / nvroads.com, and IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties via Travel Midwest (CC BY-SA 2.0). Camerae is not affiliated with or endorsed by any of these agencies.
 
 ## Keywords (100)
 
-traffic,camera,highway,cam,road,conditions,caltrans,nevada,511,tahoe,reno,i-80,commute,snow,live
+camera,highway,road,conditions,caltrans,nevada,illinois,chicago,511,tahoe,reno,i-80,commute,snow
 
-## What's New (version 1.0)
+"traffic" and "cams" are left out because the app name already has them; Apple indexes the name.
 
-Leave blank for the first version.
+## What's New (version 1.1)
+
+Illinois is here: about 3,800 camera views from IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties, from Chicago to Peoria and beyond. Illinois cameras show snapshots that refresh every few minutes, and offline ones are marked.
 
 ## Age rating questionnaire
 
@@ -76,9 +78,9 @@ Answered by the build: `ITSAppUsesNonExemptEncryption = NO` (HTTPS through Apple
 - **Contact:** your name, phone and email (only Apple sees these)
 - **Notes:**
 
-> No account or sign-in. Coverage is California and Nevada. The app opens on a map of nearby cameras; tap any camera pin to play its live video. To test a route, tap "Where to?", then "San Francisco → Reno" under "Try a trip", or enter any two places in either state. Tap a camera row to play its live video.
+> No account or sign-in. Coverage is California, Nevada and Illinois. The app opens on a map of nearby cameras; tap any camera pin to play its live video. To test a route, tap "Where to?", then "San Francisco → Reno" under "Try a trip", or "Chicago → Peoria" for Illinois, or enter any two places in a covered state. Tap a camera row to play its live video.
 >
-> Camera data: California images and video come from the Caltrans Commercial Wholesale Web Portal (cwwp2.dot.ca.gov), which Caltrans provides at no charge for integration into applications; content is public domain per dot.ca.gov/conditions-of-use. Nevada images and video come from the Nevada 511 traveler information service (nvroads.com), which NDOT provides as a public service. Imagery is credited to each agency in the app, and the app does not claim to be affiliated with either.
+> Camera data: California images and video come from the Caltrans Commercial Wholesale Web Portal (cwwp2.dot.ca.gov), which Caltrans provides at no charge for integration into applications; content is public domain per dot.ca.gov/conditions-of-use. Nevada images and video come from the Nevada 511 traveler information service (nvroads.com), which NDOT provides as a public service. Illinois images come from IDOT's public "Illinois Gateway Traffic Cameras" dataset, published under a Creative Commons Attribution-ShareAlike license and served by Travel Midwest (IDOT's traveler information service) and Lake County PASSAGE. Imagery is credited to each agency in the app, and the app does not claim to be affiliated with any of them.
 >
 > The app shows a notice that it is for trip planning and passengers, not for watching while driving.
 
