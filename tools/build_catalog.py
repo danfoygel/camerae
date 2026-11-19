@@ -10,8 +10,11 @@ Sources:
   nevada    NVroads (IBI/Arcadis 511). Uses the official keyed API when
             NV511_API_KEY is set, otherwise the public list endpoint that
             backs nvroads.com/list/cameras (undocumented; dev use only).
+  illinois  IDOT's "Illinois Gateway Traffic Cameras" ArcGIS layer (keyless,
+            CC BY-SA 2.0): IDOT, the Tollway, and Lake, DuPage and Kane
+            counties, snapshots only.
 
-Usage: python3 tools/build_catalog.py [--out catalog/cameras.json] [--only caltrans,nevada]
+Usage: python3 tools/build_catalog.py [--out catalog/cameras.json] [--only caltrans,nevada,illinois]
            [--stream-health FILE --stream-check-minutes N]
 
 A full stream check takes over an hour from GitHub's runners, so the scheduled build passes
@@ -22,6 +25,7 @@ file carries every stream's last result forward.
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -32,6 +36,9 @@ USER_AGENT = "camerae-catalog/0.1 (+https://github.com/; route traffic camera vi
 CALTRANS_DISTRICTS = range(1, 13)
 NV_BASE = "https://www.nvroads.com"
 NV_PAGE_SIZE = 100  # the list endpoint caps pages at 100 rows
+IL_LAYER = ("https://services2.arcgis.com/aIrBD8yn1TDTEXoz/arcgis/rest/services/"
+            "TrafficCamerasTM_Public/FeatureServer/0")
+IL_PAGE_SIZE = 1000  # the layer's maxRecordCount
 POLITE_DELAY_S = 1.0
 
 SOURCES = {
@@ -44,6 +51,12 @@ SOURCES = {
         "name": "Nevada DOT",
         "attribution": "Camera imagery courtesy of NDOT / nvroads.com",
         "infoURL": "https://www.nvroads.com/",
+    },
+    "illinois": {
+        "name": "Illinois (Travel Midwest)",
+        "attribution": "Camera imagery courtesy of IDOT, the Illinois Tollway, and Lake, DuPage and Kane "
+                       "counties via Travel Midwest (CC BY-SA 2.0)",
+        "infoURL": "https://www.travelmidwest.com/",
     },
 }
 
@@ -227,9 +240,110 @@ def parse_wkt_point(wkt):
         return None, None
 
 
+# --- Illinois --------------------------------------------------------------
+
+# Travel Midwest names each snapshot after its agency, county, travel direction and road:
+# IL-IDOTD4_4_Knox_WB_US-150_4094752_-9037588_1_W.jpg. Lake County's own images aren't named so.
+IL_SNAPSHOT_NAME = re.compile(
+    r"^IL-[A-Z0-9]+_\d+_(?P<county>[A-Za-z-]+)_(?P<dir>[NSEW]{1,2})B_(?P<road>.+?)_-?\d+_-?\d+_\d+_[A-Z]+\.jpg$")
+# "I-90/94" is the Kennedy and the Dan Ryan, where the two run together.
+IL_HIGHWAY = re.compile(r"\b(I|US|IL)[ -]?(\d{1,3})((?:/\d{1,3})*)\b", re.IGNORECASE)
+IL_FACING = {"N": "North", "S": "South", "E": "East", "W": "West",
+             "NE": "Northeast", "NW": "Northwest", "SE": "Southeast", "SW": "Southwest"}
+
+
+def illinois_cameras():
+    rows, offset = [], 0
+    try:
+        while True:
+            params = urllib.parse.urlencode({
+                "where": "1=1", "outFields": "*", "outSR": 4326, "orderByFields": "OBJECTID",
+                "resultOffset": offset, "resultRecordCount": IL_PAGE_SIZE, "f": "json",
+            })
+            page = fetch_json(f"{IL_LAYER}/query?{params}")
+            if "error" in page:
+                raise RuntimeError(page["error"].get("message"))
+            features = page.get("features") or []
+            rows.extend(f["attributes"] for f in features)
+            if len(features) < IL_PAGE_SIZE:
+                break
+            offset += IL_PAGE_SIZE
+            time.sleep(POLITE_DELAY_S)
+    except Exception as exc:  # check_catalog.py refuses to publish a catalog missing Illinois
+        print(f"illinois: {exc}", file=sys.stderr)
+        return []
+    cameras = [c for c in map(illinois_camera, rows) if c]
+    print(f"illinois: {len(cameras)}/{len(rows)} views", file=sys.stderr)
+    return cameras
+
+
+def illinois_camera(row):
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(row.get("ImgPath") or "").query)
+    camera_id = (query.get("id") or [""])[0]
+    # The layer also carries a few Iowa DOT cameras on the Mississippi crossings.
+    if not camera_id.startswith("IL-") or row.get("TooOld") == "true":
+        return None
+    lat, lon = to_float(row.get("y")), to_float(row.get("x"))
+    snapshot = clean_url(row.get("SnapShot"))
+    if lat is None or lon is None or not snapshot:
+        return None
+
+    location = (row.get("CameraLocation") or "").strip()
+    facing = (row.get("CameraDirection") or "").upper()
+    parts = IL_SNAPSHOT_NAME.match(snapshot.rsplit("/", 1)[-1])
+
+    # The app reads I- and US- routes but not IL-, so state routes are spelled SR- in `road`.
+    # The snapshot's road and the highways the location names both go in: they mostly agree,
+    # and where they don't, the camera is usually on one looking at the other.
+    refs, street, filename_highway = [], None, None
+    if parts:
+        highway = IL_HIGHWAY.match(parts["road"])
+        if highway:
+            filename_highway = f"{highway[1].upper()}-{int(highway[2])}"
+            refs.extend(illinois_refs(highway))
+        else:
+            street = parts["road"].replace("-", " ")
+    for highway in IL_HIGHWAY.finditer(location):
+        refs.extend(ref for ref in illinois_refs(highway) if ref not in refs)
+
+    # Chicago expressway cameras are named for the cross street alone ("Nordic").
+    name = location or filename_highway or camera_id
+    if filename_highway and not IL_HIGHWAY.search(location):
+        name = f"{filename_highway} : {location}" if location else filename_highway
+    if facing in IL_FACING:
+        name += f" - Looking {IL_FACING[facing]}"
+
+    if parts:
+        place = parts["county"].replace("-", " ") + " County"
+    else:
+        place = "Lake County" if camera_id.startswith("IL-LAKECOUNTY") else None
+    view_id = re.sub(r"[^A-Za-z0-9]+", "-", camera_id[len("IL-"):]).strip("-")
+    return {
+        "id": f"il-{view_id}" + (f"-{facing}" if facing in IL_FACING else ""),
+        "source": "illinois",
+        "name": name,
+        "place": place,
+        "lat": lat,
+        "lon": lon,
+        "road": ", ".join(refs) or street,
+        # The road's travel direction; the camera's own facing is in the name.
+        "direction": parts["dir"] if parts and len(parts["dir"]) == 1 else None,
+        "snapshotURL": snapshot,
+        "snapshotRefreshSeconds": 300,  # images are typically 5 to 15 minutes old
+        "hlsURL": None,
+    }
+
+
+def illinois_refs(highway):
+    prefix = highway[1].upper()
+    prefix = "SR" if prefix == "IL" else prefix
+    numbers = [highway[2]] + [n for n in highway[3].split("/") if n]
+    return [f"{prefix}-{int(n)}" for n in numbers]
+
+
 # --- main ------------------------------------------------------------------
 
-ADAPTERS = {"caltrans": caltrans_cameras, "nevada": nevada_cameras}
+ADAPTERS = {"caltrans": caltrans_cameras, "nevada": nevada_cameras, "illinois": illinois_cameras}
 
 STREAM_CHECK_WORKERS = 3
 
