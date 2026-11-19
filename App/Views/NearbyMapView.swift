@@ -66,7 +66,7 @@ struct NearbyMapView: View {
             }
             UserAnnotation()
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(.standard(pointsOfInterest: .excludingAll, showsTraffic: true))
         .mapControls {
             MapUserLocationButton()
             MapCompass()
