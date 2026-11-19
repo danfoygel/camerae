@@ -33,6 +33,7 @@ Enter where you're starting and where you're going. Camerae plans the route and 
 
 Check for snow on the pass, a backup at the bridge, or fog in the valley before you leave.
 
+• A map of the cameras around you, with live video a tap away
 • Every camera on your route, in driving order
 • Live video for over half the cameras, with snapshots for the rest
 • Compare alternate routes, each with its own cameras
@@ -75,7 +76,7 @@ Answered by the build: `ITSAppUsesNonExemptEncryption = NO` (HTTPS through Apple
 - **Contact:** your name, phone and email (only Apple sees these)
 - **Notes:**
 
-> No account or sign-in. Coverage is California and Nevada. To test, tap "San Francisco → Reno" under "Try a trip" on the first screen, or enter any two places in either state. Tap a camera row to play its live video.
+> No account or sign-in. Coverage is California and Nevada. The app opens on a map of nearby cameras; tap any camera pin to play its live video. To test a route, tap "Where to?", then "San Francisco → Reno" under "Try a trip", or enter any two places in either state. Tap a camera row to play its live video.
 >
 > Camera data: California images and video come from the Caltrans Commercial Wholesale Web Portal (cwwp2.dot.ca.gov), which Caltrans provides at no charge for integration into applications; content is public domain per dot.ca.gov/conditions-of-use. Nevada images and video come from the Nevada 511 traveler information service (nvroads.com), which NDOT provides as a public service. Imagery is credited to each agency in the app, and the app does not claim to be affiliated with either.
 >
@@ -83,4 +84,9 @@ Answered by the build: `ITSAppUsesNonExemptEncryption = NO` (HTTPS through Apple
 
 ## Screenshots
 
-`appstore/screenshots/` — 6.9" iPhone (1320 × 2868), taken on the iPhone 17 Pro Max simulator. Upload in filename order.
+Upload in filename order. App Store Connect asks for the 6.3" size ("iPhone with Dynamic Island (medium display)"):
+
+- `appstore/screenshots/6.3-inch/`: 1206 × 2622, for the required 6.3" slot
+- `appstore/screenshots/`: 1320 × 2868 (6.9"), taken on the iPhone 17 Pro Max simulator; the 6.3" set is scaled from these
+
+Camerae is iPhone-only, so the iPad and Apple Watch tabs don't need screenshots.

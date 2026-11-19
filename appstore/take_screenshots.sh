@@ -16,16 +16,30 @@ xcrun simctl install "$DEVICE" "$APP"
 xcrun simctl privacy "$DEVICE" grant location com.danfoygel.camerae
 xcrun simctl location "$DEVICE" set 37.7749,-122.4194
 
+rm -f "$OUT"/0*.png "$OUT"/6.3-inch/0*.png
+
 xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae >/dev/null
-sleep 4
+sleep 8
 # Launch opens on the map of nearby cameras.
-xcrun simctl io "$DEVICE" screenshot "$OUT/03-map.png"
+xcrun simctl io "$DEVICE" screenshot "$OUT/01-map.png"
+
+echo "Now tap a camera pin near downtown, wait for the video, then press Return."
+read
+xcrun simctl io "$DEVICE" screenshot "$OUT/02-map-live.png"
 
 xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae \
   -from "San Francisco, CA" -to "Reno, NV" >/dev/null
-sleep 12
-xcrun simctl io "$DEVICE" screenshot "$OUT/01-route.png"
+sleep 14
+xcrun simctl io "$DEVICE" screenshot "$OUT/03-route.png"
 
-echo "Now tap the first camera row in the simulator, wait for the video, then press Return."
-read
-xcrun simctl io "$DEVICE" screenshot "$OUT/02-live-video.png"
+# App Store Connect rejects transparency, and its required slot is 6.3" (1206 × 2622). Needs Pillow.
+python3 - "$OUT" <<'PY'
+import glob, os, sys
+from PIL import Image
+out = sys.argv[1]
+os.makedirs(f"{out}/6.3-inch", exist_ok=True)
+for f in sorted(glob.glob(f"{out}/0*.png")):
+    im = Image.open(f).convert("RGB")
+    im.save(f)
+    im.resize((1207, 2622), Image.LANCZOS).crop((0, 0, 1206, 2622)).save(f"{out}/6.3-inch/{os.path.basename(f)}")
+PY
