@@ -7,6 +7,7 @@ struct RouteView: View {
 
     @Environment(CatalogStore.self) private var catalog
     @Environment(LivePlayback.self) private var playback
+    @Environment(VideoAccess.self) private var access
     @State private var optionID = 0
     /// The expanded site.
     @State private var selectedID: String?
@@ -59,13 +60,8 @@ struct RouteView: View {
                 position = .camera(MapCamera(centerCoordinate: selected.camera.clLocation, distance: 12_000))
             }
         }
-        .onChange(of: selectedView?.id) { _, _ in
-            if let selected = selectedView {
-                playback.play(selected.camera)
-            } else {
-                playback.stop()
-            }
-        }
+        .onChange(of: selectedView?.id, updatePlayback)
+        .onChange(of: access.hasVideo, updatePlayback)
         .onDisappear { playback.stop() }
         // For the blue dot; a no-op once the user has answered the prompt.
         .task { try? await CurrentLocation.shared.ensureAuthorized() }
@@ -186,6 +182,12 @@ struct RouteView: View {
         .multilineTextAlignment(.center)
         .font(.caption2).foregroundStyle(.secondary)
         .padding()
+    }
+
+    /// Plays the expanded row when live video is unlocked; otherwise it shows the snapshot and
+    /// a play button.
+    private func updatePlayback() {
+        if let selected = selectedView, access.hasVideo { playback.play(selected.camera) } else { playback.stop() }
     }
 
     private func select(_ id: String?) {

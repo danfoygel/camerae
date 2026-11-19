@@ -19,6 +19,7 @@ struct NearbyMapView: View {
 
     @Environment(CatalogStore.self) private var catalog
     @Environment(LivePlayback.self) private var playback
+    @Environment(VideoAccess.self) private var access
     // The `-from … -to …` development shortcut goes straight to the planner, which runs it.
     @State private var path: [Screen] = UserDefaults.standard.string(forKey: "to") != nil ? [.planner] : []
     @State private var position: MapCameraPosition = .camera(Self.unitedStates)
@@ -47,12 +48,12 @@ struct NearbyMapView: View {
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationTitle("Map")
                 .navigationDestination(for: Screen.self) { _ in SearchView() }
-                .onAppear { if let selected { playback.play(selected) } }
+                .onAppear(perform: updatePlayback)
                 .onDisappear { playback.stop() }
         }
-        .onChange(of: selected) { _, camera in
-            if let camera { playback.play(camera) } else { playback.stop() }
-        }
+        .onChange(of: selected, updatePlayback)
+        // The route screen owns the player while it's pushed.
+        .onChange(of: access.hasVideo) { if path.isEmpty { updatePlayback() } }
         .onChange(of: catalog.catalog == nil) {
             updatePins()
             showCoverage()
@@ -158,6 +159,12 @@ struct NearbyMapView: View {
                 .map(\.0)
             selected = camera
         }
+    }
+
+    /// Plays the selected camera when live video is unlocked; otherwise its card shows the
+    /// snapshot and a play button.
+    private func updatePlayback() {
+        if let selected, access.hasVideo { playback.play(selected) } else { playback.stop() }
     }
 
     /// Moves to the current location once it's known, unless the user has already moved the map.

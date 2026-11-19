@@ -1,0 +1,89 @@
+{
+  "identifier" : "8C3B2E51",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_developerTeamID" : "ZVU48K8YCD",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21600001",
+      "localizations" : [
+
+      ],
+      "name" : "Camerae Live",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "19.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6760000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Live highway camera video, billed yearly",
+              "displayName" : "Camerae Live Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.danfoygel.camerae.live.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Camerae Live Yearly",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6760000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Live highway camera video, billed monthly",
+              "displayName" : "Camerae Live Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.danfoygel.camerae.live.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Camerae Live Monthly",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

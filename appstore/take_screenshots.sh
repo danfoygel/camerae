@@ -18,12 +18,13 @@ xcrun simctl location "$DEVICE" set 37.7749,-122.4194
 
 rm -f "$OUT"/0*.png "$OUT"/6.3-inch/0*.png
 
-xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae >/dev/null
+# A fresh trial, so pressing play starts live video.
+xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae -resetVideoTrial YES >/dev/null
 sleep 8
 # Launch opens on the map of nearby cameras.
 xcrun simctl io "$DEVICE" screenshot "$OUT/01-map.png"
 
-echo "Now tap a camera pin near downtown, wait for the video, then press Return."
+echo "Now tap a camera pin near downtown, press play, wait for the video, then press Return."
 read
 xcrun simctl io "$DEVICE" screenshot "$OUT/02-map-live.png"
 

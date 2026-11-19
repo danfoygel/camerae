@@ -39,6 +39,9 @@ schemes:
     build:
       targets:
         Camerae: all
+    run:
+      # Local StoreKit testing: products, purchases and renewals without App Store Connect.
+      storeKitConfiguration: Camerae.storekit
     test:
       targets:
         - package: CamCore/CamCoreTests
