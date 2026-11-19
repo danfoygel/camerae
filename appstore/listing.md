@@ -1,4 +1,4 @@
-# App Store listing — Camerae 1.1
+# App Store listing — Camerae 1.2
 
 Copy these into App Store Connect. Character limits are Apple's.
 
@@ -16,7 +16,7 @@ Copy these into App Store Connect. Character limits are Apple's.
 | Marketing URL | (optional) https://danfoygel.github.io/camerae/ |
 | Privacy Policy URL | https://danfoygel.github.io/camerae/privacy.html |
 | Copyright | 2026 Dan Foygel |
-| Price | Free |
+| Price | Free, with in-app subscription (Camerae Live) |
 | Availability | United States |
 
 If "Camerae: Route Traffic Cams" is rejected as too similar to another name, plain "Camerae" works too.
@@ -35,7 +35,8 @@ Check for snow on the pass, a backup at the bridge, or fog in the valley before 
 
 • A map of the cameras around you, with live video a tap away
 • Every camera on your route, in driving order
-• Live video for most California and Nevada cameras, with snapshots for the rest
+• Live video for most California and Nevada cameras with Camerae Live, free for your first 72 hours
+• Snapshots for every camera, always free
 • Compare alternate routes, each with its own cameras
 • Several views from one pole, starting with the one facing your direction of travel
 • Offline cameras are marked, so you don't wait on a dead feed
@@ -43,6 +44,8 @@ Check for snow on the pass, a backup at the bridge, or fog in the valley before 
 • No account, no ads, no tracking
 
 Coverage: about 7,900 cameras across California (Caltrans), Nevada (NDOT) and Illinois (IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties). Illinois cameras are snapshots only.
+
+Camerae Live: live video is an auto-renewing subscription, billed monthly or yearly. Your first 72 hours of live video, starting the first time you press play, are free. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless canceled at least 24 hours before the end of the current period; manage or cancel it in your Apple Account settings. Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ · Privacy Policy: https://danfoygel.github.io/camerae/privacy.html
 
 Camerae is for planning a trip and for passengers. Please don't watch cameras while you drive.
 
@@ -54,13 +57,38 @@ camera,highway,road,conditions,caltrans,nevada,illinois,chicago,511,tahoe,reno,i
 
 "traffic" and "cams" are left out because the app name already has them; Apple indexes the name.
 
-## What's New (version 1.1)
+## What's New (version 1.2)
 
-Illinois is here: about 3,800 camera views from IDOT, the Illinois Tollway, and Lake, DuPage and Kane counties, from Chicago to Peoria and beyond. Illinois cameras show snapshots that refresh every few minutes, and offline ones are marked.
+Introducing Camerae Live. Live video from highway cameras is now a subscription, $0.99 a month or $9.99 a year, and your first 72 hours of live video are free, starting the first time you press play. Snapshots stay free for every camera.
+
+## In-app purchases
+
+Create a subscription group **Camerae Live** with two auto-renewable subscriptions at the same
+level, and attach both to the version for review (with a screenshot of the paywall):
+
+| Reference name | Product ID | Duration | Price (US) |
+|---|---|---|---|
+| Camerae Live Yearly | com.danfoygel.camerae.live.yearly | 1 year | $9.99 |
+| Camerae Live Monthly | com.danfoygel.camerae.live.monthly | 1 month | $0.99 |
+
+Each subscription's display name and description match the app's paywall: "Camerae Live Yearly" /
+"Live highway camera video, billed yearly" (and the monthly equivalents). The group's display
+name is "Camerae Live".
+
+Review Information, for both subscriptions:
+- Screenshot: `appstore/subscription-review.png`
+- Note: "Unlocks live video from highway cameras. Snapshots stay free. Live video is free for 72
+  hours from the first time the user presses play; after that, pressing play on a live camera
+  (red pin on the map) opens this subscription screen. During the trial, the 'Free trial' badge
+  on the video also opens it."
+
+The 72-hour trial is
+handled in the app, so don't add an introductory offer (it would ask for payment up front).
+Also fill in the Paid Apps agreement, tax and banking, or the products won't load.
 
 ## Age rating questionnaire
 
-Answer **None / No** to every item. There's no user-generated content, chat, web browsing, gambling, or purchases. Expected result: the lowest rating (4+).
+Answer **None / No** to every item. There's no user-generated content, chat, web browsing or gambling. (The Camerae Live subscription doesn't affect the rating.) Expected result: the lowest rating (4+).
 
 ## App Privacy
 
@@ -78,7 +106,9 @@ Answered by the build: `ITSAppUsesNonExemptEncryption = NO` (HTTPS through Apple
 - **Contact:** your name, phone and email (only Apple sees these)
 - **Notes:**
 
-> No account or sign-in. Coverage is California, Nevada and Illinois. The app opens on a map of nearby cameras; tap any camera pin to play its live video. To test a route, tap "Where to?", then "San Francisco → Reno" under "Try a trip", or "Chicago → Peoria" for Illinois, or enter any two places in a covered state. Tap a camera row to play its live video.
+> No account or sign-in. Coverage is California, Nevada and Illinois. The app opens on a map of nearby cameras; tap a red camera pin, then press play to watch its live video.
+>
+> Live video is the Camerae Live subscription (monthly or yearly). The first press of play starts a 72-hour free trial with no sign-up or payment; after it, pressing play shows the subscription screen, with Restore Purchases, Terms of Use and Privacy Policy. Snapshots are free for every camera. To test a route, tap "Where to?", then "San Francisco → Reno" under "Try a trip", or "Chicago → Peoria" for Illinois, or enter any two places in a covered state. Tap a camera row to play its live video.
 >
 > Camera data: California images and video come from the Caltrans Commercial Wholesale Web Portal (cwwp2.dot.ca.gov), which Caltrans provides at no charge for integration into applications; content is public domain per dot.ca.gov/conditions-of-use. Nevada images and video come from the Nevada 511 traveler information service (nvroads.com), which NDOT provides as a public service. Illinois images come from IDOT's public "Illinois Gateway Traffic Cameras" dataset, published under a Creative Commons Attribution-ShareAlike license and served by Travel Midwest (IDOT's traveler information service) and Lake County PASSAGE. Imagery is credited to each agency in the app, and the app does not claim to be affiliated with any of them.
 >

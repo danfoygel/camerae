@@ -13,4 +13,9 @@ enum Format {
         let h = minutes / 60, m = minutes % 60
         return m == 0 ? "\(h) h" : "\(h) h \(m) min"
     }
+
+    /// Time left on the free trial, rounded up: "72 h", "1 h", "12 min".
+    static func remaining(_ seconds: TimeInterval) -> String {
+        seconds > 60 * 60 ? "\(Int((seconds / 3_600).rounded(.up))) h" : "\(max(Int((seconds / 60).rounded(.up)), 1)) min"
+    }
 }

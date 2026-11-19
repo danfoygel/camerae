@@ -20,18 +20,21 @@ App: newest of bundled catalog/cameras.json and cached download ◄┘ fetched o
 
 App (SwiftUI, iOS 18+)
   NearbyMapView home screen: cameras around the current location, thinned to one pin per grid
-                cell when zoomed out; tap for a live card; "Where to?" opens SearchView
+                cell when zoomed out; tap for a camera card; "Where to?" opens SearchView
   SearchView    from/to with MKLocalSearchCompleter autocomplete, "Current Location", saved Home
   RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
   RouteView     route picker, Map with routes + camera dots, ordered camera list
   CameraRow     snapshot that refreshes only while on screen; tap to expand; OFFLINE badge
   FeedHealth    cameras whose latest snapshot was a DOT "unavailable" image
   LivePlayback  one shared AVPlayer that moves to the selected camera
+  VideoAccess   Camerae Live subscription (StoreKit 2) and the 72-hour free trial; gates video
+  PaywallView   SubscriptionStoreView, shown when play is pressed after the trial
 
 CamCore (Swift package, no UIKit/MapKit)
   RouteMatcher  grid-indexed corridor search → projection for distance along the route →
                 road-name filters → ordered list with distance and ETA
   RoadRef       parses "I-80", "I80", "US50", "CA-99 N", "IL 53", "Hwy 50", "215 WB …"
+  VideoTrial    the trial's phases: not started, running until start + 72 h, ended
   PlaceholderDetector  16×12 thumbnail compared against the stock error images in
                 Resources/Placeholders (the DOTs and counties send these as normal 200 OK images)
 ```
@@ -85,6 +88,23 @@ gzipped) with an ETag, caches it, and switches to it when it's newer than what i
 - **Setup.** The workflow needs a deploy key with write access on `camerae-catalog`, with its
   private half stored here as the `CATALOG_DEPLOY_KEY` secret. `NV511_API_KEY` is an optional
   secret.
+
+### Camerae Live (subscription)
+
+Live video is a subscription; snapshots stay free. Without it, a live camera shows its snapshot
+and a play button. The first press starts a 72-hour free trial (no sign-up, no payment), during
+which video autoplays as before and a "Free trial · N h left" badge sits on the video (tap it to
+subscribe early). After the trial, the play button opens the paywall.
+
+- **Products**: `com.danfoygel.camerae.live.yearly` and `com.danfoygel.camerae.live.monthly`, in one
+  subscription group ("Camerae Live"). Prices are $9.99/yr and $0.99/mo; keep
+  `Camerae.storekit` in step with App Store Connect so local testing shows the real prices.
+- **Trial start** is stored in the keychain, which outlives deleting and reinstalling the app, so
+  a reinstall doesn't restart the trial. It's per device (not synced through iCloud).
+- **Local testing**: the scheme runs with `Camerae.storekit`, so purchases, renewals and
+  refunds work in the simulator from Xcode (Debug → StoreKit → Manage Transactions). Debug
+  builds also take `-resetVideoTrial YES` (clear the trial) and `-videoTrialSeconds 60` (shorten it).
+  Launching with `simctl` skips the StoreKit file, so the paywall there can't load products.
 
 ## Running
 
