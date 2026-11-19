@@ -14,15 +14,18 @@ tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the
 
 App (SwiftUI, iOS 18+)
   SearchView    MKLocalSearchCompleter autocomplete, "Current Location"
-  RoutePlanner  MKDirections → RouteGeometry → RouteMatcher (CamCore)
-  RouteView     Map with route + camera dots, ordered camera list
-  CameraRow     snapshot that refreshes only while on screen; tap to expand
+  RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
+  RouteView     route picker, Map with routes + camera dots, ordered camera list
+  CameraRow     snapshot that refreshes only while on screen; tap to expand; OFFLINE badge
+  FeedHealth    cameras whose latest snapshot was a DOT "unavailable" image
   LivePlayback  one shared AVPlayer that moves to the selected camera
 
 CamCore (Swift package, no UIKit/MapKit)
   RouteMatcher  grid-indexed corridor search → projection for distance along the route →
                 road-name filters → ordered list with distance and ETA
   RoadRef       parses "I-80", "I80", "US50", "CA-99 N", "Hwy 50", "215 WB …"
+  PlaceholderDetector  16×12 thumbnail compared against the stock error images in
+                Resources/Placeholders (Caltrans and NDOT send these as normal 200 OK images)
 ```
 
 No server is needed. MapKit does geocoding and routing on the device, matching runs on the
@@ -58,6 +61,11 @@ python3 tools/build_catalog.py --skip-stream-check   # faster, keeps dead stream
 
 # Core logic tests
 cd CamCore && swift test
+
+# Re-render the app icon after editing design/AppIcon.svg (needs Chrome and Pillow)
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+  --window-size=1024,1024 --screenshot=/tmp/icon.png "file://$PWD/design/AppIcon.svg"
+python3 -c "from PIL import Image; Image.open('/tmp/icon.png').convert('RGB').save('App/Assets.xcassets/AppIcon.appiconset/AppIcon.png')"
 
 # Generate the Xcode project and build
 xcodegen generate

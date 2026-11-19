@@ -64,6 +64,53 @@ struct RouteMatcherTests {
         #expect(matcher.match(hollywood).map(\.reason) == [.proximity])
     }
 
+    /// Fortuna → Arcata as MapKit describes it (instructions already shifted onto the polyline
+    /// they cover, as RoutePlanner does): US-101 is named only as a destination, then as
+    /// Eureka's W Fifth St, which carries US-101 through town and on to Arcata.
+    static let fortunaToArcata = RouteGeometry(
+        steps: [
+            .init(instructions: "Keep right onto Main St", coordinates: [at(east: 0), at(east: 1_000)]),
+            .init(instructions: "Continue toward US-101 North", coordinates: [at(east: 1_000), at(east: 27_000)]),
+            .init(instructions: "Turn right onto W Fifth St", coordinates: [at(east: 27_000), at(east: 39_000)]),
+            .init(instructions: "Take the exit onto CA-255, Samoa Blvd toward Arcata", coordinates: [at(east: 39_000), at(east: 39_300)]),
+        ],
+        expectedTravelTime: 2_400
+    )
+
+    @Test func matchesHighwayCamerasWhereStepsNameNoHighway() {
+        let matcher = RouteMatcher(cameras: [
+            Self.camera("spruce", east: 18_000, north: 51, road: "US-101", name: "US-101 : Eureka / Spruce Point - Looking North (C023)"),
+            Self.camera("fernbridge", east: 6_000, north: 131, road: "SR-211", name: "SR-211: Fernbridge (Looking South)"),
+            Self.camera("5thV", east: 27_400, north: 8, road: "US-101", name: "US-101: Eureka / 5th & V - Looking South"),
+            Self.camera("5thL", east: 28_600, north: 9, road: "US-101", name: "US-101: Eureka / 5th&L - Looking North"),
+            Self.camera("4thH", east: 28_900, north: 105, road: "US-101", name: "US-101: Eureka / 4th & H - Looking North (CXXX)"),
+            Self.camera("airport", east: 35_000, north: 13, road: "US-101", name: "US-101: Jacobs/Airport"),
+        ])
+        let result = matcher.match(Self.fortunaToArcata)
+        #expect(result.map(\.id) == ["spruce", "5thV", "5thL", "4thH", "airport"])
+        #expect(result.allSatisfy { $0.reason == .sameRoad })
+    }
+
+    @Test func streetStepNeedsSpreadOutCloseHighwayCameras() {
+        let street = RouteGeometry(
+            coordinates: [Self.at(east: 0), Self.at(east: 5_000)],
+            instructions: "Turn left onto Oak St",
+            expectedTravelTime: 400
+        )
+        // Both directions of one overpass: a single spot, so still an overpass view.
+        let overpass = RouteMatcher(cameras: [
+            Self.camera("n", east: 2_000, north: 5, road: "SR-85", name: "SR-85 : Oak Street - Looking North"),
+            Self.camera("s", east: 2_010, north: 5, road: "SR-85", name: "SR-85 : Oak Street - Looking South"),
+        ])
+        #expect(overpass.match(street).isEmpty)
+        // A freeway alongside a frontage road: spread out, but not right beside the street.
+        let parallel = RouteMatcher(cameras: [
+            Self.camera("a", east: 1_000, north: 40, road: "I-5"),
+            Self.camera("b", east: 3_000, north: 40, road: "I-5"),
+        ])
+        #expect(parallel.match(street).isEmpty)
+    }
+
     @Test func acceptsInterchangeCameraThatNamesRouteHighway() {
         let matcher = RouteMatcher(cameras: [
             Self.camera("interchange", east: 9_000, north: 60, road: "SR-99", name: "SR-99 : at I-80 Interchange"),

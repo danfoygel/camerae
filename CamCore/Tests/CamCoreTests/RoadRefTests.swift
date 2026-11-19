@@ -22,6 +22,8 @@ struct RoadRefTests {
     @Test func dropsDestinationRoads() {
         #expect(RoadRef.parseTraveledRoads(fromInstruction: "Merge onto I-580 E toward I-80") == [RoadRef(.interstate, 580)])
         #expect(RoadRef.parseTraveledRoads(fromInstruction: "Keep left on Hollywood Fwy toward I-10 East, I-5 South").isEmpty)
+        // No road of its own: the highway it heads for is the road ahead.
+        #expect(RoadRef.parseTraveledRoads(fromInstruction: "Continue toward US-101 North") == [RoadRef(.us, 101)])
     }
 
     @Test func unknownKindMatchesAnyHighwayWithSameNumber() {

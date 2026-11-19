@@ -140,7 +140,9 @@ public struct RouteSite: Identifiable, Sendable, Hashable {
 /// 3. Filtering against the road the route is on at that point: a camera naming a different
 ///    highway is rejected (cross streets, overpasses, parallel freeways); cameras with no road
 ///    information must sit closer to the line and, when the source gives a direction, line up
-///    with the direction of travel.
+///    with the direction of travel. A step whose text names only a street still counts as a
+///    highway when that highway's cameras line it closely along a stretch (US-101 on Eureka's
+///    5th St).
 public struct RouteMatcher: Sendable {
     public struct Options: Sendable {
         /// Search radius around the route for cameras on the same highway.
@@ -151,6 +153,11 @@ public struct RouteMatcher: Sendable {
         public var proximityMaxOffset: Double = 50
         /// Max angle between the camera's road axis and the route's direction of travel.
         public var axisTolerance: Double = 50
+        /// Max offset for a highway camera to count as evidence that a step runs on its highway.
+        public var evidenceOffset: Double = 25
+        /// Min distance along the route between the first and last evidence cameras; an
+        /// overpass puts all of its cameras at one spot.
+        public var evidenceSpan: Double = 500
         /// Cameras this close together are one site with several views. Caltrans puts the
         /// views of one intersection up to about 65 m apart, on different poles.
         public var siteRadius: Double = 70
@@ -190,15 +197,16 @@ public struct RouteMatcher: Sendable {
         let points = route.coordinates
         guard points.count >= 2 else { return [] }
 
-        let stepTokens = route.stepInstructions.map(Self.tokens)
-        let stepRefs = Self.resolveStepRefs(route.stepInstructions, tokens: stepTokens)
-        let stepIsSurfaceStreet = route.stepInstructions.map(Self.namesSurfaceStreet)
-
         var cumulative = [0.0]
         for i in 1..<points.count {
             cumulative.append(cumulative[i - 1] + Geo.distance(points[i - 1], points[i]))
         }
         let total = cumulative[points.count - 1]
+
+        let stepTokens = route.stepInstructions.map(Self.tokens)
+        var stepRefs = Self.resolveStepRefs(route.stepInstructions, tokens: stepTokens)
+        inferHighways(route, cumulative: cumulative, into: &stepRefs)
+        let stepIsSurfaceStreet = route.stepInstructions.map(Self.namesSurfaceStreet)
 
         var best: [Int: RouteCamera] = [:]
         for s in 0..<(points.count - 1) {
@@ -264,6 +272,33 @@ public struct RouteMatcher: Sendable {
             }
         }
         return refs
+    }
+
+    /// Highways a step runs on although its text names none: MapKit says "Turn right onto
+    /// W Fifth St" where US-101 follows Eureka's city streets. Cameras on one highway sitting
+    /// right beside the step and spread along it show the step is on that highway.
+    private func inferHighways(_ route: RouteGeometry, cumulative: [Double], into stepRefs: inout [Set<RoadRef>]) {
+        let points = route.coordinates
+        var spans: [Int: [RoadRef: ClosedRange<Double>]] = [:]
+        for s in 0..<(points.count - 1) {
+            let step = route.segmentStep[s]
+            guard stepRefs[step].isEmpty else { continue }
+            let a = points[s], b = points[s + 1]
+            for i in candidates(near: a, b) where !refs[i].isEmpty {
+                let (t, offset) = Geo.project(cameras[i].coordinate, ontoSegment: a, b)
+                guard offset <= options.evidenceOffset else { continue }
+                let along = cumulative[s] + t * (cumulative[s + 1] - cumulative[s])
+                for ref in refs[i] {
+                    let span = spans[step]?[ref]
+                    spans[step, default: [:]][ref] = min(span?.lowerBound ?? along, along)...max(span?.upperBound ?? along, along)
+                }
+            }
+        }
+        for (step, byRef) in spans {
+            for (ref, span) in byRef where span.upperBound - span.lowerBound >= options.evidenceSpan {
+                stepRefs[step].insert(ref)
+            }
+        }
     }
 
     /// True when an instruction names a road that is neither a numbered highway nor a named

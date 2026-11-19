@@ -6,6 +6,7 @@ struct SearchView: View {
 
     @Environment(CatalogStore.self) private var catalog
     @State private var search = PlaceSearch()
+    @State private var recents = RecentPlaces()
     @State private var fromText = Endpoint.currentLocation.title
     @State private var toText = ""
     @State private var from: Endpoint? = .currentLocation
@@ -91,7 +92,13 @@ struct SearchView: View {
                     Label("Current Location", systemImage: "location.fill")
                 }
             }
-            ForEach(search.results, id: \.self) { completion in
+            ForEach(recentSuggestions, id: \.self) { place in
+                Button { pick(.recent(place)) } label: {
+                    Label { Text(place.title).foregroundStyle(.primary) } icon: { Image(systemName: "clock") }
+                }
+                .swipeActions { Button("Remove", role: .destructive) { recents.remove(place) } }
+            }
+            ForEach(completionSuggestions, id: \.self) { completion in
                 Button { pick(.completion(completion)) } label: {
                     VStack(alignment: .leading) {
                         Text(completion.title).foregroundStyle(.primary)
@@ -102,6 +109,17 @@ struct SearchView: View {
                 }
             }
         }
+    }
+
+    /// Previously used places; filtered by what's typed, or all of them while the field still shows a pick.
+    private var recentSuggestions: [RecentPlace] {
+        let picked = focus == .from ? from : to
+        return recents.matching(picked == nil ? (focus == .from ? fromText : toText) : "")
+    }
+
+    private var completionSuggestions: [MKLocalSearchCompletion] {
+        let recentTitles = Set(recentSuggestions.map { $0.title.lowercased() })
+        return search.results.filter { !recentTitles.contains(Endpoint.completion($0).title.lowercased()) }
     }
 
     @ViewBuilder private var coverage: some View {
@@ -154,7 +172,9 @@ struct SearchView: View {
         Task {
             defer { isPlanning = false }
             do {
-                planned = try await RoutePlanner.plan(from: start, to: end, matcher: matcher)
+                let plan = try await RoutePlanner.plan(from: start, to: end, matcher: matcher)
+                plan.places.forEach(recents.add)
+                planned = plan
             } catch {
                 errorMessage = error.localizedDescription
             }
