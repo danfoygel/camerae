@@ -181,7 +181,9 @@ struct RouteView: View {
         let lines = catalog.catalog?.sources.filter { sourceIDs.contains($0.id) }.map(\.attribution) ?? []
         return VStack(spacing: 2) {
             ForEach(lines, id: \.self) { Text($0) }
+            Text(SearchView.drivingNotice).padding(.top, 6)
         }
+        .multilineTextAlignment(.center)
         .font(.caption2).foregroundStyle(.secondary)
         .padding()
     }
