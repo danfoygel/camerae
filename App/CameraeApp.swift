@@ -6,6 +6,7 @@ struct CameraeApp: App {
     @State private var catalog = CatalogStore()
     @State private var playback = LivePlayback()
     @State private var health = FeedHealth()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Muted camera video should never interrupt the user's own audio.
@@ -19,6 +20,9 @@ struct CameraeApp: App {
                 .environment(playback)
                 .environment(health)
                 .task { await catalog.load() }
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { Task { await catalog.refresh() } }
         }
     }
 }

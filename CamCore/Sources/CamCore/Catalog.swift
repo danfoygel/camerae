@@ -9,13 +9,39 @@ public struct CameraCatalog: Codable, Sendable {
         public var infoURL: URL?
     }
 
+    /// The schema version this build reads. The builder bumps it on a breaking change, and the
+    /// workflow publishes each version at its own path, so older builds keep a catalog they can read.
+    public static let schemaVersion = 1
+
+    public enum DecodeError: Error, Equatable {
+        case unsupportedVersion(Int)
+    }
+
     public var version: Int
     public var generatedAt: String
     public var sources: [Source]
     public var cameras: [Camera]
 
     public static func decode(from data: Data) throws -> CameraCatalog {
-        try JSONDecoder().decode(CameraCatalog.self, from: data)
+        // Check the version first, so another schema fails with a clear error rather than a
+        // missing-key one.
+        struct Header: Decodable { var version: Int }
+        let version = try JSONDecoder().decode(Header.self, from: data).version
+        guard version == schemaVersion else { throw DecodeError.unsupportedVersion(version) }
+        return try JSONDecoder().decode(CameraCatalog.self, from: data)
+    }
+
+    /// When the builder ran, or nil if `generatedAt` doesn't parse.
+    public var generatedDate: Date? {
+        ISO8601DateFormatter().date(from: generatedAt)
+    }
+
+    /// True if this catalog was built after `other`. A catalog whose date doesn't parse counts
+    /// as older than any whose date does.
+    public func isNewer(than other: CameraCatalog) -> Bool {
+        guard let date = generatedDate else { return false }
+        guard let otherDate = other.generatedDate else { return true }
+        return date > otherDate
     }
 
     public func source(for camera: Camera) -> Source? {
