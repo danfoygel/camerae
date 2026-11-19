@@ -15,7 +15,7 @@ struct PlannedRoute: Identifiable {
     let to: String
     /// MapKit's recommended route first, then any alternatives it offered.
     let options: [Option]
-    /// The resolved endpoints worth offering again as suggestions (excludes Current Location).
+    /// The resolved endpoints worth offering again as suggestions (excludes Current Location and Home).
     let places: [RecentPlace]
 }
 
@@ -53,7 +53,7 @@ enum RoutePlanner {
         }
         return PlannedRoute(from: from.title, to: to.title, options: options,
                             places: [(from, source), (to, destination)].compactMap { endpoint, item in
-                                guard endpoint != .currentLocation else { return nil }
+                                guard !endpoint.isShortcut else { return nil }
                                 let c = item.coordinate
                                 return RecentPlace(title: endpoint.title, latitude: c.latitude, longitude: c.longitude)
                             })
@@ -87,7 +87,7 @@ extension MKPolyline {
     }
 }
 
-/// Requests when-in-use location access once, for "Current Location" starts.
+/// Requests when-in-use location access once, for "Current Location" starts and the blue dot on route maps.
 @MainActor
 final class LocationPermission: NSObject, CLLocationManagerDelegate {
     static let shared = LocationPermission()
