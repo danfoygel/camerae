@@ -12,6 +12,8 @@ struct RoadRefTests {
         ("Merge onto CA-99 N", [RoadRef(.state, 99)]),
         ("Keep left to stay on US-395 S", [RoadRef(.us, 395)]),
         ("SR-28", [RoadRef(.state, 28)]),
+        ("Turn left onto IL-53 N", [RoadRef(.state, 53)]),
+        ("IL 131 at IL 176", [RoadRef(.state, 131), RoadRef(.state, 176)]),
         ("McCarran & Lakeside", []),
         ("I-110 : (196) Avenue 26 Off Ramp", [RoadRef(.interstate, 110)]),
     ])

@@ -52,7 +52,8 @@ public struct ImageFingerprint: Sendable {
 /// arrive as ordinary 200 OK images. Add a new one by dropping a sample into Resources/Placeholders.
 public struct PlaceholderDetector: Sendable {
     /// In a sweep of every California and Nevada camera (Nov 2026), error images measured at most
-    /// 6.3 from a reference and the closest real frame, a featureless sky, 33.7.
+    /// 6.3 from a reference and the closest real frame, a featureless sky, 33.7. In a sample of
+    /// about 190 Illinois views, the closest real frame (black but for a caption) measured 27.7.
     public static let threshold = 12.0
 
     public static let standard = PlaceholderDetector(

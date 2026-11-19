@@ -151,7 +151,7 @@ struct RouteView: View {
                         ContentUnavailableView(
                             "No cameras on this route",
                             systemImage: "video.slash",
-                            description: Text("Camera coverage is California and Nevada for now.")
+                            description: Text(catalog.catalog.map { "Coverage: \($0.coverageDescription)." } ?? "")
                         )
                         .padding(.top, 40)
                     }

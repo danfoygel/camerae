@@ -8,11 +8,12 @@ import SwiftUI
 struct NearbyMapView: View {
     private enum Screen: Hashable { case planner }
 
-    /// California and Nevada, shown until (or unless) the current location is known. Positions
-    /// are cameras rather than regions: a region is re-fit whenever the camera card changes the
-    /// map's safe area, which would zoom the map out from under the user.
-    private static let coverage = MapCamera(
-        centerCoordinate: CLLocationCoordinate2D(latitude: 37.6, longitude: -118.6), distance: 2_200_000)
+    /// The contiguous US, shown until the catalog loads; then every camera in it, until (or
+    /// unless) the current location is known. Positions are held as cameras rather than regions:
+    /// a region is re-fit whenever the camera card changes the map's safe area, which would zoom
+    /// the map out from under the user.
+    private static let unitedStates = MapCamera(
+        centerCoordinate: CLLocationCoordinate2D(latitude: 39.5, longitude: -98.6), distance: 11_000_000)
     /// Cameras this close to a tapped one are offered as other views of the same site.
     private static let siteRadius: CLLocationDistance = 70
 
@@ -20,7 +21,8 @@ struct NearbyMapView: View {
     @Environment(LivePlayback.self) private var playback
     // The `-from … -to …` development shortcut goes straight to the planner, which runs it.
     @State private var path: [Screen] = UserDefaults.standard.string(forKey: "to") != nil ? [.planner] : []
-    @State private var position: MapCameraPosition = .camera(Self.coverage)
+    @State private var position: MapCameraPosition = .camera(Self.unitedStates)
+    @State private var centeredOnUser = false
     @State private var region: MKCoordinateRegion?
     @State private var pins: [Camera] = []
     /// All cameras in view, including the ones thinned out of `pins`.
@@ -51,8 +53,14 @@ struct NearbyMapView: View {
         .onChange(of: selected) { _, camera in
             if let camera { playback.play(camera) } else { playback.stop() }
         }
-        .onChange(of: catalog.catalog == nil) { updatePins() }
-        .task { await centerOnUser() }
+        .onChange(of: catalog.catalog == nil) {
+            updatePins()
+            showCoverage()
+        }
+        .task {
+            showCoverage()
+            await centerOnUser()
+        }
     }
 
     private var map: some View {
@@ -74,6 +82,7 @@ struct NearbyMapView: View {
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             region = context.region
+            if position.rect != nil { position = .camera(context.camera) }
             updatePins()
         }
     }
@@ -155,9 +164,20 @@ struct NearbyMapView: View {
     private func centerOnUser() async {
         guard let coordinate = try? await CurrentLocation.shared.coordinate(),
               !position.positionedByUser else { return }
+        centeredOnUser = true
         withAnimation {
             position = .camera(MapCamera(centerCoordinate: coordinate, distance: 50_000))
         }
+    }
+
+    private func showCoverage() {
+        guard !centeredOnUser, !position.positionedByUser,
+              let cameras = catalog.catalog?.cameras, !cameras.isEmpty else { return }
+        // MapKit fits the rect to the screen; onMapCameraChange then holds the result as a camera.
+        let rect = cameras.reduce(MKMapRect.null) { rect, camera in
+            rect.union(MKMapRect(origin: MKMapPoint(camera.clLocation), size: MKMapSize()))
+        }
+        position = .rect(rect.insetBy(dx: -rect.width * 0.1, dy: -rect.height * 0.1))
     }
 }
 

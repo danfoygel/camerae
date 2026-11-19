@@ -41,19 +41,20 @@ IL_LAYER = ("https://services2.arcgis.com/aIrBD8yn1TDTEXoz/arcgis/rest/services/
 IL_PAGE_SIZE = 1000  # the layer's maxRecordCount
 POLITE_DELAY_S = 1.0
 
+# Each name reads as a state and its agency: the app lists them as its coverage.
 SOURCES = {
     "caltrans": {
-        "name": "Caltrans",
+        "name": "California (Caltrans)",
         "attribution": "Camera imagery courtesy of Caltrans",
         "infoURL": "https://cwwp2.dot.ca.gov/",
     },
     "nevada": {
-        "name": "Nevada DOT",
+        "name": "Nevada (NDOT)",
         "attribution": "Camera imagery courtesy of NDOT / nvroads.com",
         "infoURL": "https://www.nvroads.com/",
     },
     "illinois": {
-        "name": "Illinois (Travel Midwest)",
+        "name": "Illinois (IDOT)",
         "attribution": "Camera imagery courtesy of IDOT, the Illinois Tollway, and Lake, DuPage and Kane "
                        "counties via Travel Midwest (CC BY-SA 2.0)",
         "infoURL": "https://www.travelmidwest.com/",

@@ -9,7 +9,7 @@ struct PlaceholderDetectorTests {
     }
 
     @Test func loadsBundledReferences() {
-        #expect(PlaceholderDetector.standard.references.count >= 4)
+        #expect(PlaceholderDetector.standard.references.count >= 6)
     }
 
     /// Error images from other cameras than the references: different timestamps and, for one,
@@ -19,18 +19,23 @@ struct PlaceholderDetectorTests {
         "placeholder-caltrans-small.jpg",
         "placeholder-caltrans-icon.jpg",
         "placeholder-nevada.png",
+        "placeholder-dupage.jpg",
+        "placeholder-lakecounty.jpg",
     ])
     func recognizesPlaceholders(name: String) throws {
         #expect(PlaceholderDetector.standard.isPlaceholder(try fixture(name)))
     }
 
     /// Real frames, including the ones closest to a placeholder in a sweep of every camera:
-    /// a featureless sky and a dark, foggy night.
+    /// a featureless sky and a dark, foggy night. The Illinois ones are the closest in a sample
+    /// of about 190 views: black frames with only a caption.
     @Test(arguments: [
         "frame-caltrans-flat-sky.jpg",
         "frame-caltrans-night-fog.jpg",
         "frame-nevada.jpg",
         "frame-nevada-intersection.jpg",
+        "frame-lakecounty-dark.jpg",
+        "frame-idot-dark.jpg",
     ])
     func acceptsRealFrames(name: String) throws {
         #expect(!PlaceholderDetector.standard.isPlaceholder(try fixture(name)))

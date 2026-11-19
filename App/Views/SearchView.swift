@@ -22,6 +22,7 @@ struct SearchView: View {
         ("San Francisco → Reno", "San Francisco, CA", "Reno, NV"),
         ("Los Angeles → Las Vegas", "Los Angeles, CA", "Las Vegas, NV"),
         ("San Diego → Sacramento", "San Diego, CA", "Sacramento, CA"),
+        ("Chicago → Peoria", "Chicago, IL", "Peoria, IL"),
     ]
 
     /// Shown on the search screen and under every route's camera list.
@@ -204,7 +205,7 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("\(catalog.cameras.count.formatted()) cameras, \(live.formatted()) with live video",
                       systemImage: "video")
-                Text("Coverage: California (Caltrans) and Nevada (NDOT).")
+                Text("Coverage: \(catalog.coverageDescription).")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

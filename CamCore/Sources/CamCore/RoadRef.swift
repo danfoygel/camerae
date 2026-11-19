@@ -27,7 +27,7 @@ public struct RoadRef: Hashable, Sendable, CustomStringConvertible {
     /// Extracts every highway reference in a piece of text.
     ///
     /// Handles feed spellings ("I-80", "I80", "US50", "SR-28", "Hwy 50", "215 WB ...") and
-    /// MapKit instruction spellings ("I-80 E", "CA-99 N", "NV-28", "US-395 S").
+    /// MapKit instruction spellings ("I-80 E", "CA-99 N", "NV-28", "IL-53 N", "US-395 S").
     public static func parse(_ text: String) -> Set<RoadRef> {
         var refs = Set<RoadRef>()
         let ns = text as NSString
@@ -64,13 +64,13 @@ public struct RoadRef: Hashable, Sendable, CustomStringConvertible {
         switch prefix {
         case "I", "INTERSTATE": return .interstate
         case "US", "US HWY", "US HIGHWAY", "US ROUTE": return .us
-        case "SR", "CA", "NV", "STATE ROUTE", "STATE HWY", "STATE HIGHWAY", "CA SR", "NV SR": return .state
+        case "SR", "CA", "NV", "IL", "STATE ROUTE", "STATE HWY", "STATE HIGHWAY", "CA SR", "NV SR": return .state
         default: return .unknown
         }
     }
 
     private static let pattern = try! NSRegularExpression(
-        pattern: #"\b(INTERSTATE|I|US HIGHWAY|US HWY|US ROUTE|U\.S\.|US|STATE ROUTE|STATE HWY|STATE HIGHWAY|SR|CA|NV|HWY|HIGHWAY|ROUTE|RTE)[ -]?(\d{1,3})(?![\d.])"#,
+        pattern: #"\b(INTERSTATE|I|US HIGHWAY|US HWY|US ROUTE|U\.S\.|US|STATE ROUTE|STATE HWY|STATE HIGHWAY|SR|CA|NV|IL|HWY|HIGHWAY|ROUTE|RTE)[ -]?(\d{1,3})(?![\d.])"#,
         options: [.caseInsensitive]
     )
 

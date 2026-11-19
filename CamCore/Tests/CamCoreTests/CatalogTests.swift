@@ -29,6 +29,14 @@ struct CatalogTests {
         #expect(catalog.cameras[0].hlsURL == nil)
     }
 
+    @Test func listsSourcesAsCoverage() {
+        let sources = ["California (Caltrans)", "Nevada (NDOT)", "Illinois (IDOT)"].map {
+            CameraCatalog.Source(id: $0, name: $0, attribution: "", infoURL: nil)
+        }
+        let catalog = CameraCatalog(version: 1, generatedAt: "", sources: sources, cameras: [])
+        #expect(catalog.coverageDescription == "California (Caltrans), Nevada (NDOT), and Illinois (IDOT)")
+    }
+
     @Test func rejectsOtherSchemaVersions() {
         let json = #"{"version":2,"builtAt":"2027-01-01T00:00:00+00:00","cameras":[]}"#
         #expect(throws: CameraCatalog.DecodeError.unsupportedVersion(2)) {
