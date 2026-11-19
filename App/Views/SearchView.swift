@@ -25,59 +25,60 @@ struct SearchView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
+            Section {
+                endpointField("From", text: $fromText, field: .from)
+                endpointField("To", text: $toText, field: .to)
+            }
+
+            if focus != nil {
+                suggestions
+            } else {
                 Section {
-                    endpointField("From", text: $fromText, field: .from)
-                    endpointField("To", text: $toText, field: .to)
-                }
-
-                if focus != nil {
-                    suggestions
-                } else {
-                    Section {
-                        Button {
-                            if isPlanning { cancelPlanning() } else { planRoute() }
-                        } label: {
-                            HStack {
-                                Spacer()
-                                if isPlanning {
-                                    ProgressView()
-                                    Text("Cancel")
-                                } else {
-                                    Text("Find Cameras on Route").bold()
-                                }
-                                Spacer()
+                    Button {
+                        if isPlanning { cancelPlanning() } else { planRoute() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isPlanning {
+                                ProgressView()
+                                Text("Cancel")
+                            } else {
+                                Text("Find Cameras on Route").bold()
                             }
-                        }
-                        .disabled(!isPlanning && !canPlan)
-                    } footer: {
-                        if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
-                    }
-
-                    homeSection
-
-                    Section("Try a trip") {
-                        ForEach(Self.sampleTrips, id: \.0) { trip in
-                            Button(trip.0) { setTrip(from: trip.1, to: trip.2); planRoute() }
+                            Spacer()
                         }
                     }
+                    .disabled(!isPlanning && !canPlan)
+                } footer: {
+                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                }
 
-                    Section {
-                        coverage
+                homeSection
+
+                Section("Try a trip") {
+                    ForEach(Self.sampleTrips, id: \.0) { trip in
+                        Button(trip.0) { setTrip(from: trip.1, to: trip.2); planRoute() }
                     }
                 }
+
+                Section {
+                    coverage
+                }
             }
-            .navigationTitle("Camerae")
-            .navigationDestination(item: $planned) { RouteView(plan: $0) }
-            .sheet(isPresented: $isEditingHome) { HomePicker(home: home, recents: recents) }
-            .onChange(of: home.place) {
-                refreshHome(&from, text: &fromText)
-                refreshHome(&to, text: &toText)
-            }
-            .onChange(of: focus) { search.update(focus == .from ? fromText : focus == .to ? toText : "") }
-            .task(id: catalog.matcher != nil) { runLaunchArgumentTrip() }
         }
+        .navigationTitle("Plan a Route")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $planned) { RouteView(plan: $0) }
+        .sheet(isPresented: $isEditingHome) { HomePicker(home: home, recents: recents) }
+        .onChange(of: home.place) {
+            refreshHome(&from, text: &fromText)
+            refreshHome(&to, text: &toText)
+        }
+        .onChange(of: focus) { search.update(focus == .from ? fromText : focus == .to ? toText : "") }
+        .task(id: catalog.matcher != nil) { runLaunchArgumentTrip() }
+        // Opened to pick a destination; not when coming back from a route.
+        .onAppear { if to == nil && toText.isEmpty { focus = .to } }
     }
 
     private func endpointField(_ label: String, text: Binding<String>, field: Field) -> some View {

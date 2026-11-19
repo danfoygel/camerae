@@ -1,7 +1,8 @@
 # Camerae
 
-An iPhone app: enter a start and a destination, get a driving route, and see every highway
-camera along it in the order you'll pass them, with live video playing inline.
+An iPhone app: it opens on a map of the highway cameras around you (tap one for live video).
+Enter a start and a destination to get a driving route and see every camera along it in the
+order you'll pass them, with live video playing inline.
 
 Coverage today: **California (Caltrans)** and **Nevada (NDOT / nvroads.com)**: about 4,100
 cameras, of which about 2,800 have live HLS video.
@@ -13,7 +14,9 @@ tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the
    (run on a schedule)        (normalized schema)
 
 App (SwiftUI, iOS 18+)
-  SearchView    MKLocalSearchCompleter autocomplete, "Current Location", saved Home
+  NearbyMapView home screen: cameras around the current location, thinned to one pin per grid
+                cell when zoomed out; tap for a live card; "Where to?" opens SearchView
+  SearchView    from/to with MKLocalSearchCompleter autocomplete, "Current Location", saved Home
   RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
   RouteView     route picker, Map with routes + camera dots, ordered camera list
   CameraRow     snapshot that refreshes only while on screen; tap to expand; OFFLINE badge

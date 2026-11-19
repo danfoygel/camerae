@@ -14,7 +14,7 @@ struct CameraeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SearchView()
+            NearbyMapView()
                 .environment(catalog)
                 .environment(playback)
                 .environment(health)

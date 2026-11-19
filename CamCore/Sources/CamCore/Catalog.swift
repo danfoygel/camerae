@@ -86,6 +86,7 @@ public struct Camera: Codable, Sendable, Identifiable, Hashable {
 
     /// Compass bearing the camera looks toward, when its name says ("Looking North").
     public var viewBearing: Double? { ViewDirection.bearing(fromName: name) }
+    public var viewCompass: String? { viewBearing.map(Geo.compassLabel) }
 
     /// Axis of the road the camera covers, in degrees, when the source gives a direction.
     var roadAxis: Double? {
