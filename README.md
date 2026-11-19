@@ -97,8 +97,8 @@ which video autoplays as before and a "Free trial · N h left" badge sits on the
 subscribe early). After the trial, the play button opens the paywall.
 
 - **Products**: `com.danfoygel.camerae.live.yearly` and `com.danfoygel.camerae.live.monthly`, in one
-  subscription group ("Camerae Live"). Create them in App Store Connect with these IDs; the
-  prices in `Camerae.storekit` ($19.99/yr, $2.99/mo) are placeholders for local testing.
+  subscription group ("Camerae Live"). Prices are $9.99/yr and $0.99/mo; keep
+  `Camerae.storekit` in step with App Store Connect so local testing shows the real prices.
 - **Trial start** is stored in the keychain, which outlives deleting and reinstalling the app, so
   a reinstall doesn't restart the trial. It's per device (not synced through iCloud).
 - **Local testing**: the scheme runs with `Camerae.storekit`, so purchases, renewals and

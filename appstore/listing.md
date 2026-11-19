@@ -66,12 +66,23 @@ Illinois is here: about 3,800 camera views from IDOT, the Illinois Tollway, and 
 Create a subscription group **Camerae Live** with two auto-renewable subscriptions at the same
 level, and attach both to the version for review (with a screenshot of the paywall):
 
-| Reference name | Product ID | Duration | Price (placeholder) |
+| Reference name | Product ID | Duration | Price (US) |
 |---|---|---|---|
-| Camerae Live Yearly | com.danfoygel.camerae.live.yearly | 1 year | $19.99 |
-| Camerae Live Monthly | com.danfoygel.camerae.live.monthly | 1 month | $2.99 |
+| Camerae Live Yearly | com.danfoygel.camerae.live.yearly | 1 year | $9.99 |
+| Camerae Live Monthly | com.danfoygel.camerae.live.monthly | 1 month | $0.99 |
 
-Display name "Camerae Live", description "Live video from highway cameras". The 72-hour trial is
+Each subscription's display name and description match the app's paywall: "Camerae Live Yearly" /
+"Live highway camera video, billed yearly" (and the monthly equivalents). The group's display
+name is "Camerae Live".
+
+Review Information, for both subscriptions:
+- Screenshot: `appstore/subscription-review.png`
+- Note: "Unlocks live video from highway cameras. Snapshots stay free. Live video is free for 72
+  hours from the first time the user presses play; after that, pressing play on a live camera
+  (red pin on the map) opens this subscription screen. During the trial, the 'Free trial' badge
+  on the video also opens it."
+
+The 72-hour trial is
 handled in the app, so don't add an introductory offer (it would ask for payment up front).
 Also fill in the Paid Apps agreement, tax and banking, or the products won't load.
 
