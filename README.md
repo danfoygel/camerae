@@ -16,13 +16,16 @@ App (SwiftUI, iOS 18+)
   SearchView    MKLocalSearchCompleter autocomplete, "Current Location"
   RoutePlanner  MKDirections (with alternates) → RouteGeometry → RouteMatcher (CamCore), per route
   RouteView     route picker, Map with routes + camera dots, ordered camera list
-  CameraRow     snapshot that refreshes only while on screen; tap to expand
+  CameraRow     snapshot that refreshes only while on screen; tap to expand; OFFLINE badge
+  FeedHealth    cameras whose latest snapshot was a DOT "unavailable" image
   LivePlayback  one shared AVPlayer that moves to the selected camera
 
 CamCore (Swift package, no UIKit/MapKit)
   RouteMatcher  grid-indexed corridor search → projection for distance along the route →
                 road-name filters → ordered list with distance and ETA
   RoadRef       parses "I-80", "I80", "US50", "CA-99 N", "Hwy 50", "215 WB …"
+  PlaceholderDetector  16×12 thumbnail compared against the stock error images in
+                Resources/Placeholders (Caltrans and NDOT send these as normal 200 OK images)
 ```
 
 No server is needed. MapKit does geocoding and routing on the device, matching runs on the

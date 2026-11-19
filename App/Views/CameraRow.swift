@@ -10,7 +10,15 @@ struct CameraRow: View {
     let isSelected: Bool
     let onTap: () -> Void
 
+    @Environment(FeedHealth.self) private var health
+    @Environment(LivePlayback.self) private var playback
+
     private var camera: Camera { routeCamera.camera }
+
+    /// A stream that is actually playing outranks a stale error snapshot.
+    private var isOffline: Bool {
+        health.isOffline(camera.id) && !(playback.cameraID == camera.id && playback.status == .playing)
+    }
 
     var body: some View {
         Group {
@@ -21,7 +29,7 @@ struct CameraRow: View {
                 }
             } else {
                 HStack(alignment: .top, spacing: 12) {
-                    SnapshotView(url: camera.snapshotURL, refreshSeconds: max(camera.snapshotRefreshSeconds, 60))
+                    SnapshotView(camera: camera, refreshSeconds: max(camera.snapshotRefreshSeconds, 60))
                         .frame(width: 128, height: 72)
                         .clipShape(.rect(cornerRadius: 6))
                     details
@@ -42,7 +50,9 @@ struct CameraRow: View {
             }
             Text(metadata).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             HStack(spacing: 6) {
-                if camera.hlsURL != nil {
+                if isOffline {
+                    Badge(text: "OFFLINE", color: .orange)
+                } else if camera.hlsURL != nil {
                     Badge(text: "LIVE", color: .red)
                 } else {
                     Badge(text: "SNAPSHOT", color: .gray)
@@ -62,13 +72,14 @@ struct CameraRow: View {
 
 private struct ExpandedMedia: View {
     let camera: Camera
+    @Environment(FeedHealth.self) private var health
     @Environment(LivePlayback.self) private var playback
 
     var body: some View {
         let isActive = playback.cameraID == camera.id
         ZStack {
             // Faster refresh while expanded; also the fallback when video can't play.
-            SnapshotView(url: camera.snapshotURL, refreshSeconds: 30)
+            SnapshotView(camera: camera, refreshSeconds: 30, showsOfflineText: true)
             if camera.hlsURL != nil, isActive, playback.status != .failed {
                 VideoPlayer(player: playback.player)
                     .opacity(playback.status == .playing ? 1 : 0)
@@ -80,7 +91,8 @@ private struct ExpandedMedia: View {
         .aspectRatio(16 / 9, contentMode: .fit)
         .clipShape(.rect(cornerRadius: 8))
         .overlay(alignment: .bottomLeading) {
-            if camera.hlsURL != nil && isActive && playback.status == .failed {
+            // An offline snapshot already says so; this is for a dead stream beside a working camera.
+            if camera.hlsURL != nil && isActive && playback.status == .failed && !health.isOffline(camera.id) {
                 Label("Live video unavailable — showing latest image", systemImage: "exclamationmark.triangle")
                     .font(.caption2).padding(6)
                     .background(.ultraThinMaterial, in: .rect(cornerRadius: 6)).padding(6)

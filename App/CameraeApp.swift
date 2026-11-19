@@ -5,6 +5,7 @@ import SwiftUI
 struct CameraeApp: App {
     @State private var catalog = CatalogStore()
     @State private var playback = LivePlayback()
+    @State private var health = FeedHealth()
 
     init() {
         // Muted camera video should never interrupt the user's own audio.
@@ -16,6 +17,7 @@ struct CameraeApp: App {
             SearchView()
                 .environment(catalog)
                 .environment(playback)
+                .environment(health)
                 .task { await catalog.load() }
         }
     }
