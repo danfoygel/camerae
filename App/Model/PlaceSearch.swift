@@ -5,12 +5,14 @@ enum Endpoint: Equatable {
     case currentLocation
     case completion(MKLocalSearchCompletion)
     case query(String)
+    case recent(RecentPlace)
 
     var title: String {
         switch self {
         case .currentLocation: "Current Location"
         case .completion(let c): c.subtitle.isEmpty ? c.title : "\(c.title), \(c.subtitle)"
         case .query(let q): q
+        case .recent(let place): place.title
         }
     }
 
@@ -24,6 +26,8 @@ enum Endpoint: Equatable {
             let request = MKLocalSearch.Request()
             request.naturalLanguageQuery = query
             return try await Self.first(request)
+        case .recent(let place):
+            return MKMapItem.at(place.coordinate, name: place.title)
         }
     }
 
@@ -33,6 +37,24 @@ enum Endpoint: Equatable {
             throw RoutePlanner.PlanError.placeNotFound
         }
         return item
+    }
+}
+
+extension MKMapItem {
+    @MainActor static func at(_ coordinate: CLLocationCoordinate2D, name: String) -> MKMapItem {
+        let item: MKMapItem
+        if #available(iOS 26, *) {
+            item = MKMapItem(location: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
+                             address: nil)
+        } else {
+            item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+        }
+        item.name = name
+        return item
+    }
+
+    var coordinate: CLLocationCoordinate2D {
+        if #available(iOS 26, *) { location.coordinate } else { placemark.coordinate }
     }
 }
 

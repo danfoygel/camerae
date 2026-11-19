@@ -227,31 +227,37 @@ def parse_wkt_point(wkt):
 ADAPTERS = {"caltrans": caltrans_cameras, "nevada": nevada_cameras}
 
 STREAM_CHECK_WORKERS = 4
-
+CONFIRM_WORKERS = 2
 
 # 403 is deliberately absent: Caltrans's Wowza hosts answer 403 when busy.
 DEAD_STATUSES = {404, 410}
 
+# Caltrans's Wowza hosts take ~8.5 s to answer 404 for a missing stream, so the confirm
+# probe must wait longer than that or every dead stream looks like a timeout.
+CONFIRM_TIMEOUT_S = 15
 
-def stream_is_live(url, attempts=2):
-    """False only when the playlist definitively answers 404/410 (twice).
 
-    Timeouts and other errors keep the stream: under load the Wowza hosts stall or refuse
-    requests for streams that are fine, and a false "dead" hides a working camera.
-    """
+def answers_ok(url):
+    """First-pass probe: True only for a quick, clean 200. Anything else is a suspect."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    for attempt in range(attempts):
-        try:
-            with urllib.request.urlopen(req, timeout=8):
-                return True
-        except urllib.error.HTTPError as exc:
-            if exc.code not in DEAD_STATUSES:
-                return True
-        except Exception:
+    try:
+        with urllib.request.urlopen(req, timeout=8):
             return True
-        if attempt + 1 < attempts:
-            time.sleep(2)
-    return False
+    except Exception:
+        return False
+
+
+def confirmed_dead(url):
+    """True only when the playlist answers 404/410. Timeouts and other errors keep the
+    stream, since a false "dead" hides a working camera."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=CONFIRM_TIMEOUT_S):
+            return False
+    except urllib.error.HTTPError as exc:
+        return exc.code in DEAD_STATUSES
+    except Exception:
+        return False
 
 
 def drop_dead_streams(cameras):
@@ -262,19 +268,16 @@ def drop_dead_streams(cameras):
 
     with_video = [c for c in cameras if c["hlsURL"]]
     with ThreadPoolExecutor(max_workers=STREAM_CHECK_WORKERS) as pool:
-        live = list(pool.map(lambda c: stream_is_live(c["hlsURL"]), with_video))
-    suspects = [cam for cam, ok in zip(with_video, live) if not ok]
-    print(f"stream check: {len(suspects)} of {len(with_video)} streams suspect; confirming one at a time",
-          file=sys.stderr)
+        ok = list(pool.map(lambda c: answers_ok(c["hlsURL"]), with_video))
+    suspects = [cam for cam, fine in zip(with_video, ok) if not fine]
+    print(f"stream check: {len(suspects)} of {len(with_video)} streams suspect; confirming", file=sys.stderr)
 
-    # Confirm sequentially, without the concurrent load that can itself cause errors.
-    dead = 0
-    for cam in suspects:
-        if not stream_is_live(cam["hlsURL"]):
+    with ThreadPoolExecutor(max_workers=CONFIRM_WORKERS) as pool:
+        dead = list(pool.map(lambda c: confirmed_dead(c["hlsURL"]), suspects))
+    for cam, is_dead in zip(suspects, dead):
+        if is_dead:
             cam["hlsURL"] = None
-            dead += 1
-        time.sleep(0.5)
-    print(f"stream check: {dead} dead streams cleared", file=sys.stderr)
+    print(f"stream check: {sum(dead)} dead streams cleared", file=sys.stderr)
 
 
 def main():

@@ -15,6 +15,8 @@ struct PlannedRoute: Identifiable {
     let to: String
     /// MapKit's recommended route first, then any alternatives it offered.
     let options: [Option]
+    /// The resolved endpoints worth offering again as suggestions (excludes Current Location).
+    let places: [RecentPlace]
 }
 
 @MainActor
@@ -37,9 +39,11 @@ enum RoutePlanner {
         if from == .currentLocation || to == .currentLocation {
             try await LocationPermission.shared.ensureAuthorized()
         }
+        let source = try await from.resolve()
+        let destination = try await to.resolve()
         let request = MKDirections.Request()
-        request.source = try await from.resolve()
-        request.destination = try await to.resolve()
+        request.source = source
+        request.destination = destination
         request.transportType = .automobile
         request.requestsAlternateRoutes = true
         let routes = try await MKDirections(request: request).calculate().routes
@@ -47,7 +51,12 @@ enum RoutePlanner {
         let options = routes.enumerated().map { index, route in
             PlannedRoute.Option(id: index, route: route, cameras: matcher.match(geometry(of: route)))
         }
-        return PlannedRoute(from: from.title, to: to.title, options: options)
+        return PlannedRoute(from: from.title, to: to.title, options: options,
+                            places: [(from, source), (to, destination)].compactMap { endpoint, item in
+                                guard endpoint != .currentLocation else { return nil }
+                                let c = item.coordinate
+                                return RecentPlace(title: endpoint.title, latitude: c.latitude, longitude: c.longitude)
+                            })
     }
 
     /// Converts an MKRoute to the matcher's geometry.
