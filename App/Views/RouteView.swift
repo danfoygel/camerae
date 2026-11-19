@@ -266,22 +266,31 @@ private extension CGPoint {
     }
 }
 
-private struct CameraPin: View {
-    let number: Int
+struct CameraPin: View {
+    /// Route order, shown on the selected pin; without one it shows a camera icon.
+    var number: Int?
     let live: Bool
     let selected: Bool
 
     var body: some View {
         // Unselected cameras are dots so a long route stays legible; the selected one shows its number.
-        Text(selected ? "\(number)" : "")
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: selected ? 28 : 11, height: selected ? 28 : 11)
-            .background(Circle().fill(live ? Color.red : Color.gray))
-            .overlay(Circle().stroke(.white, lineWidth: selected ? 3 : 1.5))
-            .shadow(radius: selected ? 4 : 1)
-            .padding(selected ? 0 : 8) // keeps small dots tappable
-            .contentShape(.circle)
+        Group {
+            if !selected {
+                Text("")
+            } else if let number {
+                Text("\(number)")
+            } else {
+                Image(systemName: "video.fill").font(.system(size: 11, weight: .bold))
+            }
+        }
+        .font(.system(size: 13, weight: .bold))
+        .foregroundStyle(.white)
+        .frame(width: selected ? 28 : 11, height: selected ? 28 : 11)
+        .background(Circle().fill(live ? Color.red : Color.gray))
+        .overlay(Circle().stroke(.white, lineWidth: selected ? 3 : 1.5))
+        .shadow(radius: selected ? 4 : 1)
+        .padding(selected ? 0 : 8) // keeps small dots tappable
+        .contentShape(.circle)
     }
 }
 

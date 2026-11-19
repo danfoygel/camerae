@@ -18,7 +18,8 @@ xcrun simctl location "$DEVICE" set 37.7749,-122.4194
 
 xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae >/dev/null
 sleep 4
-xcrun simctl io "$DEVICE" screenshot "$OUT/03-search.png"
+# Launch opens on the map of nearby cameras.
+xcrun simctl io "$DEVICE" screenshot "$OUT/03-map.png"
 
 xcrun simctl launch --terminate-running-process "$DEVICE" com.danfoygel.camerae \
   -from "San Francisco, CA" -to "Reno, NV" >/dev/null

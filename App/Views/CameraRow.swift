@@ -135,7 +135,8 @@ struct CameraRow: View {
     }
 }
 
-private struct ExpandedMedia: View {
+/// The live player for a camera, with its refreshing snapshot as poster and fallback.
+struct ExpandedMedia: View {
     let camera: Camera
     @Environment(FeedHealth.self) private var health
     @Environment(LivePlayback.self) private var playback
@@ -166,7 +167,7 @@ private struct ExpandedMedia: View {
     }
 }
 
-private struct Badge: View {
+struct Badge: View {
     let text: String
     let color: Color
 
