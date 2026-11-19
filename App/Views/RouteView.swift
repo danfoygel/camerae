@@ -83,9 +83,13 @@ struct RouteView: View {
             Map(position: $position) {
                 // The chosen route draws last, on top. Keying on selection too makes MapKit replace
                 // lines whose style changed; it doesn't reliably restyle an existing overlay.
+                // MapKit has no per-segment congestion for a route, so the lines are translucent
+                // bands that let the map's own traffic coloring show through on the road beneath.
                 ForEach(routeLines) { line in
                     MapPolyline(line.option.route.polyline)
-                        .stroke(line.selected ? .blue : .gray.opacity(0.7), lineWidth: 5)
+                        .stroke(line.selected ? .blue.opacity(0.35) : .gray.opacity(0.3),
+                                style: StrokeStyle(lineWidth: line.selected ? 11 : 7, lineCap: .round, lineJoin: .round))
+                        .mapOverlayLevel(level: .aboveRoads)
                 }
                 ForEach(sites) { site in
                     Annotation("", coordinate: view(of: site).camera.clLocation, anchor: .center) {
@@ -98,7 +102,7 @@ struct RouteView: View {
                 }
                 UserAnnotation()
             }
-            .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapStyle(.standard(pointsOfInterest: .excludingAll, showsTraffic: true))
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
@@ -177,7 +181,9 @@ struct RouteView: View {
         let lines = catalog.catalog?.sources.filter { sourceIDs.contains($0.id) }.map(\.attribution) ?? []
         return VStack(spacing: 2) {
             ForEach(lines, id: \.self) { Text($0) }
+            Text(SearchView.drivingNotice).padding(.top, 6)
         }
+        .multilineTextAlignment(.center)
         .font(.caption2).foregroundStyle(.secondary)
         .padding()
     }

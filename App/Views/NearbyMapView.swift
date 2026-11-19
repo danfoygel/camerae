@@ -205,6 +205,7 @@ private struct NearbyCameraCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Close")
             }
+            Text(SearchView.drivingNotice).font(.caption2).foregroundStyle(.secondary)
         }
         .padding(12)
         .background(.regularMaterial, in: .rect(cornerRadius: 16))
