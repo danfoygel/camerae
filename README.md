@@ -9,8 +9,12 @@ cameras, of which about 2,800 have live HLS video.
 ## How it fits together
 
 ```
-tools/build_catalog.py ──► catalog/cameras.json ──► bundled into the app
-   (run on a schedule)        (normalized schema)
+.github/workflows/catalog.yml (daily)
+  tools/build_catalog.py ──► tools/check_catalog.py ──► danfoygel/camerae-catalog (public)
+                               (refuses big drops)          v1/cameras.json
+                                                                 │
+App: newest of bundled catalog/cameras.json and cached download ◄┘ fetched on launch and
+                                                                   foreground (6 h minimum)
 
 App (SwiftUI, iOS 18+)
   SearchView    MKLocalSearchCompleter autocomplete, "Current Location", saved Home
@@ -52,10 +56,37 @@ streams directly. Native apps aren't subject to browser CORS rules.
   the way the route travels is shown first; unlabeled views rank above ones known to look back.
   The other views are a tap away in the expanded row.
 
+### The catalog
+
+The Catalog workflow rebuilds the catalog daily (and on a push to main that touches the
+builder), then publishes it to the public `danfoygel/camerae-catalog` repo, because this repo
+is private and the app can't read it. The app downloads
+`raw.githubusercontent.com/danfoygel/camerae-catalog/main/v1/cameras.json` (about 185 KB
+gzipped) with an ETag, caches it, and switches to it when it's newer than what it has.
+
+- **Schema versions.** `version` in the JSON is the schema. Each version is published at its
+  own `v<N>/` path, and the app reads only `CameraCatalog.schemaVersion`, so a breaking change
+  goes in as a new version and older builds keep their old feed (it stops updating).
+- **Guard.** `tools/check_catalog.py` stops the publish if any source lost more than 20% of its
+  cameras, so a feed that's down at build time doesn't remove coverage from every phone.
+- **Unchanged builds** (only `generatedAt` differs) aren't pushed. Each publish is a single
+  force-pushed commit, so the public repo never grows.
+- **Bundled copy.** `catalog/cameras.json` still ships in the app as the offline first-launch
+  fallback. Refresh it before a release with the curl command below.
+- **Setup.** The workflow needs a deploy key with write access on `camerae-catalog`, with its
+  private half stored here as the `CATALOG_DEPLOY_KEY` secret. `NV511_API_KEY` is an optional
+  secret.
+
 ## Running
 
 ```bash
-# Rebuild the camera catalog (about 1 min to fetch; the stream health check adds more)
+# Refresh the bundled fallback from the published catalog
+curl -fsSL -o catalog/cameras.json https://raw.githubusercontent.com/danfoygel/camerae-catalog/main/v1/cameras.json
+
+# Run the catalog workflow now instead of waiting for the schedule
+gh workflow run catalog.yml
+
+# Build the catalog locally (about 1 min to fetch; the stream health check adds more)
 python3 tools/build_catalog.py
 python3 tools/build_catalog.py --skip-stream-check   # faster, keeps dead streams
 
@@ -91,8 +122,6 @@ startup (Xcode scheme → Arguments, or `xcrun simctl launch <device> com.camera
 
 ## Not done yet
 
-- Hosting the catalog and refreshing it in the app. The app currently uses only the copy
-  bundled at build time.
 - More states (the IBI/Arcadis 511 adapter reuses Nevada's code shape for about 10 more
   states).
 - App icon, and checking the CarPlay and in-motion rules before any driving-mode features.

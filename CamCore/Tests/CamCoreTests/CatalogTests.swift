@@ -28,4 +28,26 @@ struct CatalogTests {
         #expect(catalog.source(for: catalog.cameras[0])?.attribution == "Courtesy of NDOT")
         #expect(catalog.cameras[0].hlsURL == nil)
     }
+
+    @Test func rejectsOtherSchemaVersions() {
+        let json = #"{"version":2,"builtAt":"2027-01-01T00:00:00+00:00","cameras":[]}"#
+        #expect(throws: CameraCatalog.DecodeError.unsupportedVersion(2)) {
+            try CameraCatalog.decode(from: Data(json.utf8))
+        }
+    }
+
+    @Test func comparesBuildTimes() {
+        let older = catalog(generatedAt: "2026-11-18T23:00:00+00:00")
+        let newer = catalog(generatedAt: "2026-11-19T01:15:07+00:00")
+        let unparseable = catalog(generatedAt: "yesterday")
+        #expect(newer.isNewer(than: older))
+        #expect(!older.isNewer(than: newer))
+        #expect(!newer.isNewer(than: newer))
+        #expect(older.isNewer(than: unparseable))
+        #expect(!unparseable.isNewer(than: older))
+    }
+
+    private func catalog(generatedAt: String) -> CameraCatalog {
+        CameraCatalog(version: CameraCatalog.schemaVersion, generatedAt: generatedAt, sources: [], cameras: [])
+    }
 }
