@@ -19,17 +19,29 @@ public struct VideoTrial: Equatable, Sendable {
 
     public var startedAt: Date?
     public var length: TimeInterval
+    /// Time added on top of `length` by extensions.
+    public var extraTime: TimeInterval
 
-    public init(startedAt: Date?, length: TimeInterval = Self.standardLength) {
+    public init(startedAt: Date?, length: TimeInterval = Self.standardLength, extraTime: TimeInterval = 0) {
         self.startedAt = startedAt
         self.length = length
+        self.extraTime = extraTime
     }
 
     public func phase(at now: Date) -> Phase {
         guard let startedAt else { return .notStarted }
-        let end = startedAt.addingTimeInterval(length)
+        let end = startedAt.addingTimeInterval(length + extraTime)
         // Setting the clock back to before the start doesn't buy more time.
         guard now >= startedAt.addingTimeInterval(-Self.clockTolerance), now < end else { return .ended }
         return .active(endsAt: end)
+    }
+
+    /// Adds another `length` of free video: after the current end while the trial runs, from now
+    /// once it's over. Starts the trial if it hasn't started.
+    public mutating func extend(at now: Date) {
+        let start = startedAt ?? now
+        let end = max(start.addingTimeInterval(length + extraTime), now)
+        startedAt = start
+        extraTime = end.timeIntervalSince(start)
     }
 }

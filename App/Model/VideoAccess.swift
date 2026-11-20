@@ -31,12 +31,13 @@ final class VideoAccess {
     private var listeners: [Task<Void, Never>] = []
 
     init() {
-        var trial = VideoTrial(startedAt: TrialKeychain.startDate)
+        var trial = VideoTrial(startedAt: TrialKeychain.startDate, extraTime: TrialKeychain.extraTime ?? 0)
         #if DEBUG
         // Development shortcuts: launch with `-resetVideoTrial YES` and/or `-videoTrialSeconds 60`.
         if UserDefaults.standard.bool(forKey: "resetVideoTrial") {
             TrialKeychain.startDate = nil
-            trial.startedAt = nil
+            TrialKeychain.extraTime = nil
+            trial = VideoTrial(startedAt: nil)
         }
         let seconds = UserDefaults.standard.double(forKey: "videoTrialSeconds")
         if seconds > 0 { trial.length = seconds }
@@ -84,6 +85,15 @@ final class VideoAccess {
         }
     }
 
+    /// The hidden "free trial" link on the paywall: adds another 72 hours, as many times as it's tapped.
+    func extendTrial() {
+        trial.extend(at: .now)
+        TrialKeychain.startDate = trial.startedAt
+        TrialKeychain.extraTime = trial.extraTime
+        log.notice("video trial extended")
+        updateTrial()
+    }
+
     func refreshSubscription() async {
         var subscribed = false
         for await result in Transaction.currentEntitlements {
@@ -112,36 +122,44 @@ final class VideoAccess {
     }
 }
 
-/// Where the trial's start is kept. Keychain items outlive deleting and reinstalling the app,
-/// so a reinstall doesn't restart the trial.
+/// Where the trial's start and extensions are kept. Keychain items outlive deleting and
+/// reinstalling the app, so a reinstall doesn't restart the trial.
 private enum TrialKeychain {
-    private static var query: [String: Any] {
+    static var startDate: Date? {
+        get { number(for: "start").map(Date.init(timeIntervalSince1970:)) }
+        set { setNumber(newValue?.timeIntervalSince1970, for: "start") }
+    }
+
+    static var extraTime: TimeInterval? {
+        get { number(for: "extra") }
+        set { setNumber(newValue, for: "extra") }
+    }
+
+    private static func query(_ account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "com.danfoygel.camerae.video-trial",
-            kSecAttrAccount as String: "start",
+            kSecAttrAccount as String: account,
         ]
     }
 
-    static var startDate: Date? {
-        get {
-            var query = query
-            query[kSecReturnData as String] = true
-            query[kSecMatchLimit as String] = kSecMatchLimitOne
-            var result: CFTypeRef?
-            guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-                  let data = result as? Data,
-                  let seconds = Double(String(decoding: data, as: UTF8.self)) else { return nil }
-            return Date(timeIntervalSince1970: seconds)
-        }
-        set {
-            SecItemDelete(query as CFDictionary)
-            guard let newValue else { return }
-            var query = query
-            query[kSecValueData as String] = Data(String(newValue.timeIntervalSince1970).utf8)
-            query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-            let status = SecItemAdd(query as CFDictionary, nil)
-            if status != errSecSuccess { log.error("couldn't save the trial start: \(status)") }
-        }
+    private static func number(for account: String) -> Double? {
+        var query = query(account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return nil }
+        return Double(String(decoding: data, as: UTF8.self))
+    }
+
+    private static func setNumber(_ value: Double?, for account: String) {
+        SecItemDelete(query(account) as CFDictionary)
+        guard let value else { return }
+        var query = query(account)
+        query[kSecValueData as String] = Data(String(value).utf8)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess { log.error("couldn't save the trial \(account): \(status)") }
     }
 }
