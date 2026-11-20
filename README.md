@@ -101,6 +101,9 @@ subscribe early). After the trial, the play button opens the paywall.
   `Camerae.storekit` in step with App Store Connect so local testing shows the real prices.
 - **Trial start** is stored in the keychain, which outlives deleting and reinstalling the app, so
   a reinstall doesn't restart the trial. It's per device (not synced through iCloud).
+- **Extending the trial**: "free trial" in the paywall's headline is a link styled as plain text.
+  Each tap adds 72 hours (from the current end, or from now once the trial is over) and closes
+  the paywall. The added time is kept in the keychain beside the start.
 - **Local testing**: the scheme runs with `Camerae.storekit`, so purchases, renewals and
   refunds work in the simulator from Xcode (Debug → StoreKit → Manage Transactions). Debug
   builds also take `-resetVideoTrial YES` (clear the trial) and `-videoTrialSeconds 60` (shorten it).

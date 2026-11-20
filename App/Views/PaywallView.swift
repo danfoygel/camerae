@@ -6,6 +6,7 @@ import SwiftUI
 struct PaywallView: View {
     private static let terms = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
     private static let privacy = URL(string: "https://danfoygel.github.io/camerae/privacy.html")!
+    private static let extendTrial = URL(string: "camerae:extend-trial")!
 
     @Environment(VideoAccess.self) private var access
     @Environment(\.dismiss) private var dismiss
@@ -38,11 +39,17 @@ struct PaywallView: View {
                 .font(.system(size: 56))
                 .foregroundStyle(.red)
             Text("Camerae Live").font(.largeTitle.bold())
-            Text(access.trialPhase == .ended
-                 ? "Your free trial of live video has ended. Subscribe to keep watching."
-                 : "Keep live video after your free trial.")
+            // "free trial" is a link that extends the trial, tinted to look like the rest of the line.
+            Text(headline)
                 .font(.headline)
                 .multilineTextAlignment(.center)
+                .tint(.primary)
+                .environment(\.openURL, OpenURLAction { url in
+                    guard url == Self.extendTrial else { return .systemAction }
+                    access.extendTrial()
+                    dismiss()
+                    return .handled
+                })
             VStack(alignment: .leading, spacing: 10) {
                 Label("Live video from every camera that streams it", systemImage: "video.fill")
                 Label("See snow, fog and backups before you leave", systemImage: "cloud.snow.fill")
@@ -53,5 +60,11 @@ struct PaywallView: View {
         }
         .padding(.horizontal)
         .padding(.top, 24)
+    }
+
+    private var headline: LocalizedStringKey {
+        access.trialPhase == .ended
+            ? "Your [free trial](camerae:extend-trial) of live video has ended. Subscribe to keep watching."
+            : "Keep live video after your [free trial](camerae:extend-trial)."
     }
 }
