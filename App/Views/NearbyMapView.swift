@@ -89,20 +89,38 @@ struct NearbyMapView: View {
     }
 
     private var whereTo: some View {
-        Button { path.append(.planner) } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                Text("Where to?").foregroundStyle(.primary)
-                Spacer()
-                status
+        HStack(spacing: 8) {
+            Button { path.append(.planner) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    Text("Where to?").foregroundStyle(.primary)
+                    Spacer()
+                    status
+                }
+                .font(.body)
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .background(.regularMaterial, in: .capsule)
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
             }
-            .font(.body)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .background(.regularMaterial, in: .capsule)
-            .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+            .buttonStyle(.plain)
+            if !access.isSubscribed { upgrade }
+        }
+        .padding(.horizontal).padding(.top, 4)
+    }
+
+    /// Opens the subscription offer directly, whatever the trial's state.
+    private var upgrade: some View {
+        Button { access.isPaywallPresented = true } label: {
+            Image(systemName: "play.rectangle.fill")
+                .font(.subheadline)
+                .foregroundStyle(.red)
+                .frame(width: 36, height: 36)
+                .background(.regularMaterial, in: .circle)
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
-        .padding(.horizontal).padding(.top, 4)
+        .accessibilityLabel("Upgrade")
+        .accessibilityHint("Shows Camerae Live subscription options")
     }
 
     @ViewBuilder private var status: some View {
