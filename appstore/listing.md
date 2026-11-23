@@ -1,4 +1,4 @@
-# App Store listing — Camerae 1.2
+# App Store listing — Camerae 1.3
 
 Copy these into App Store Connect. Character limits are Apple's.
 
@@ -57,9 +57,9 @@ camera,highway,road,conditions,caltrans,nevada,illinois,chicago,511,tahoe,reno,i
 
 "traffic" and "cams" are left out because the app name already has them; Apple indexes the name.
 
-## What's New (version 1.2)
+## What's New (version 1.3)
 
-Introducing Camerae Live. Live video from highway cameras is now a subscription, $0.99 a month or $9.99 a year, and your first 72 hours of live video are free, starting the first time you press play. Snapshots stay free for every camera.
+Subscribe to Camerae Live anytime: tap the play button beside "Where to?" on the map.
 
 ## In-app purchases
 
@@ -80,7 +80,8 @@ Review Information, for both subscriptions:
 - Note: "Unlocks live video from highway cameras. Snapshots stay free. Live video is free for 72
   hours from the first time the user presses play; after that, pressing play on a live camera
   (red pin on the map) opens this subscription screen. During the trial, the 'Free trial' badge
-  on the video also opens it."
+  on the video also opens it. The play button beside 'Where to?' at the top of the map opens it
+  at any time."
 
 The 72-hour trial is
 handled in the app, so don't add an introductory offer (it would ask for payment up front).
